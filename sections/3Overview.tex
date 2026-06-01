@@ -19,14 +19,15 @@ implementation, and (3) a reasoning-and-test agent that combines both streams of
 evidence. The output is not only a label, but a summary report, a bug report,
 and reproduction artifacts.
 
-\textbf{Standard-document analysis.}
+\textbf{Field-Centric Rule Extraction.}
 Field requirements in protocol standards are often scattered across
 natural-language descriptions, state conditions, boundary constraints, and
-exception rules. \tool{} first locates protocol variables and their associated
-constraints in the standard, and then extracts field-level rules from this
-material. This design avoids asking an LLM to directly judge defects from large
-blocks of standard text. Instead, it first derives well-scoped checking rules
-that provide the basis for subsequent code-conformance analysis.
+exception rules. As shown in Figure~\ref{fig:overview}, \tool{} first treats the
+standard document as input, locates protocol variables and their associated
+constraints, and then uses LLM-based rule extraction to emit field-level rules.
+This design avoids asking an LLM to directly judge defects from large blocks of
+standard text. Instead, it first derives well-scoped checking rules that provide
+the basis for subsequent code-conformance analysis.
 
 \textbf{Code-context extraction.}
 The left-bottom input box represents implementation evidence: C files, headers,
@@ -50,6 +51,62 @@ whether a rule is violated is insufficient for follow-up review and repair.
 \tool{} therefore provides traceable evidence and reproducible artifacts to help
 analysts confirm issues faster and reduce the cost for maintainers to
 understand and fix defects.
+
+\subsection{Simplified Walkthrough}
+\label{sec:simplified-walkthrough}
+
+We use one TLS finding to illustrate the pipeline in a compact form. RFC
+8446 defines the TLS 1.3 \texttt{Cookie} extension body as
+\texttt{opaque cookie<1..2\^{}16-1>}, which implies that a zero-length cookie in
+a \texttt{HelloRetryRequest} is invalid~\cite{rfc8446}. After
+\textbf{Field-Centric Rule Extraction}, \tool{} emits the intermediate
+rule $r_{\mathrm{cookie}}$ in JSON form.
+\begin{lstlisting}[style=jsonsnippet]
+{
+  "f": "Cookie.cookie",
+  "C": "Client receives a TLS 1.3 HRR Cookie.",
+  "A": "Reject if Cookie is empty.",
+  "M": "MUST",
+  "E": "struct { opaque cookie<1..2^16-1>; } Cookie;"
+}
+\end{lstlisting}
+
+The code-context stage then maps the standard field \texttt{cookie} to the
+OpenSSL TLS 1.3 retry-cookie parsing path. The relevant evidence is small: the
+parser reads the extension length and stores the cookie data, but the report
+identifies no explicit rejection of the zero-length case. This yields a
+conformance hypothesis that is passed to the reasoning-and-test agent.
+
+Finally, the validation stage mutates a TLS 1.3 handshake so that the
+\texttt{HelloRetryRequest} carries an empty cookie. The observed OpenSSL client
+continues far enough to send a second \texttt{ClientHello} and only fails later,
+instead of aborting immediately on the malformed field~\cite{opensslissue30868}.
+\textbf{Reasoning-and-test agent} therefore emits the judgment
+$o_{\mathrm{cookie}}=\langle y,E,U,T,R\rangle$ as:
+\begin{lstlisting}[style=jsonsnippet]
+{
+  "y": "Inconsistent",
+  "R": "When a TLS 1.3 HelloRetryRequest carries an empty Cookie, OpenSSL does not strictly enforce RFC 8446. According to the RFC,...",
+  "E": {
+    "document": {
+      "RFC8446 Sec.4.2.2": "opaque cookie<1..2^16-1>",
+    },
+    "code": {
+      "file": "ssl/statem/extensions_clnt.c",
+      "lines": "2372-2377",
+      "text": "PACKET_as_length_prefixed_2(...) || PACKET_memdup(...); no len==0 check"
+    }
+  },
+  "U": [],
+  "T": {
+    "input": "A HRR with an empty Cookie extension.",
+    "oracle": "Abort immediately",
+    "observed": "Second ClientHello; later failure"
+  }
+}
+\end{lstlisting}
+The resulting report therefore contains a concise rule, the code evidence, the
+final judgment, and the runtime trace needed for maintainer triage.
 
 % \subsection{Design Principles}
 

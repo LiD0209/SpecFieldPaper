@@ -10,6 +10,7 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{listings}
 \usepackage{array}
 \usepackage{tabularx}
 \usepackage{booktabs}
@@ -20,6 +21,32 @@
 \usepackage{url}
 \pgfplotsset{compat=1.18}
 \graphicspath{{./}{../sections/}{sections/}}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{224,224,224}
+\definecolor{codenum}{RGB}{105,105,105}
+\lstdefinestyle{jsonsnippet}{
+  basicstyle=\ttfamily\fontsize{7.2}{8.4}\selectfont,
+  numbers=left,
+  numberstyle=\tiny\color{codenum},
+  stepnumber=1,
+  numbersep=1.0em,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  framerule=0.25pt,
+  framesep=3pt,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  xleftmargin=1.65em,
+  xrightmargin=0.65em,
+  framexleftmargin=0pt,
+  framexrightmargin=0pt,
+  aboveskip=0.45em,
+  belowskip=0.45em
+}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
