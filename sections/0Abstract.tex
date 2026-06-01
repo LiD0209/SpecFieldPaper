@@ -1,0 +1,15 @@
+Field requirements in protocol standards are usually described in natural
+language, while the corresponding implementation logic is scattered across
+parsing, validation, and error-handling code, making it difficult to directly
+connect standard requirements with implementation behavior. This paper presents
+\tool{}, a framework for field-level protocol conformance checking. The core
+idea is to use protocol fields as semantic anchors between natural-language
+standards and source-code implementations: \tool{} extracts structured field
+rules from standards, aligns them with variables and code contexts in
+implementations, and uses traceable evidence to judge whether implementation
+behavior deviates from standard requirements. For suspected deviations,
+\tool{} further generates maintainer-oriented defect reports and reproducible
+validation artifacts to support manual confirmation and result auditing. We
+submitted 204 reports on real protocol implementations including TLS/DTLS and
+QUIC; 126 have been confirmed or fixed, 9 were rejected as false positives, and
+69 remain pending. Two confirmed issues were assigned previously unknown CVEs.

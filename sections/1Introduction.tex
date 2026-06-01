@@ -1,0 +1,84 @@
+\section{Introduction}
+
+Network protocol standards are a key foundation for interoperability and
+security across independent implementations. Protocols such as
+TLS~\cite{rfc5246,rfc8446}, MQTT~\cite{mqtt311,mqtt5}, and
+QUIC~\cite{rfc9000,rfc9001,rfc9002} specify not only how endpoints parse
+messages, but also how they negotiate parameters, update state, authenticate
+peers, and handle exceptional inputs. A deviation from these requirements does
+not necessarily become an exploitable vulnerability immediately, but it can
+still introduce practical risk. For example, an implementation may accept a
+field value forbidden by the standard, omit a state-dependent check, incorrectly
+reject a valid message, or trigger abnormal error-handling behavior under a
+specific configuration. Such deviations may cause interoperability failures and
+may further enable downgrade attacks, denial-of-service conditions, or other
+security risks.
+
+Detecting these deviations is difficult because standards and code usually
+express the same behavior in different forms. Protocol standards are
+natural-language documents whose requirements are distributed across tables,
+field descriptions, state-machine descriptions, compatibility notes, and
+exception clauses. RFC-style keywords can indicate requirement
+strength~\cite{rfc2119,rfc8174}, and prior work has used RFC-derived rules,
+parser specifications, and large-language-model agents to analyze protocol
+implementations~\cite{chen2022ribdetector,zheng2025parcleanse,zheng2025rfcaudit,song2026protocolguard}.
+However, these approaches usually analyze rules, interfaces, or protocol
+behaviors as their main objects, and their granularity is relatively coarse.
+They therefore struggle to precisely capture the correspondence between
+individual fields, their related conditions, and the implementation behavior
+that realizes them.
+
+% Existing techniques only partially solve this problem. Formal validation can 
+% provide strong assurance through modeling standards and implementation, but 
+% it requires a costly protocol model.  Fuzzing and
+% conformance tests exercise real implementations, but their oracles are often
+% not linked to individual standard requirements. Static analysis can inspect
+% code, but usually lacks standard semantics. LLMs can help connect prose and
+% code, but unconstrained LLM judgments are not reliable conformance evidence.
+% Effective checking therefore needs a bounded obligation, relevant code context,
+% and an explicit way to report insufficient evidence.
+
+This paper focuses on field-level protocol requirements. Many actionable
+requirements specify that a field may appear only in a particular state, that
+its value must fall within an allowed range, that it must match another field,
+that it depends on negotiated parameters, or that it must trigger rejection
+under an invalid combination. We represent such requirements as \ruleform{}:
+under condition $C$, field $f$ must satisfy action or constraint $A$. This form
+is not a complete formal semantics, but it provides a clear boundary for
+checking standard text against implementation code.
+
+We present \tool{}, a conformance-checking framework for natural-language
+protocol standards and source-code implementations. \tool{} first extracts the
+above rules, then retrieves syntax-aware code contexts related to field
+parsing, value validation, state dependencies, and error handling, and finally
+uses iterative reasoning to determine whether the implementation satisfies the
+requirement. Each result is reported as \textsc{Consistent},
+\textsc{Inconsistent}, or \textsc{Insufficient}, with supporting or missing
+evidence recorded explicitly. For suspicious inconsistent results, \tool{}
+further attempts to generate executable validation tests.
+
+We evaluate \tool{} on real-world implementations of TLS/DTLS, MQTT, QUIC, and
+CoAP. \tool{} produced 204 submitted conformance-deviation reports; maintainers
+confirmed or fixed 126, rejected 9 as false positives, and 69 remain pending.
+Two confirmed reports were assigned previously unknown CVEs. Under GPT-5.4
+pricing, the average model cost is \$1.122 per submitted report.
+
+Our main contributions are:
+
+\begin{itemize}[leftmargin=*]
+  \item We formulate protocol conformance checking as a field-centric alignment
+  problem between standards and implementations, and design \tool{}. The
+  framework extracts structured field rules from natural-language standards and
+  aligns them with implementation code contexts to identify conformance
+  deviations in implementations.
+
+  \item We introduce an auditable reporting workflow that turns model-assisted
+  analysis into maintainer-oriented defect reports and reproducible validation
+  artifacts, reducing reliance on raw LLM verdicts and supporting manual
+  confirmation.
+
+  \item We evaluate \tool{} on real-world implementations of TLS/DTLS, MQTT,
+  QUIC, and CoAP, producing 204 submitted reports, 126 maintainer-confirmed or
+  fixed reports, 9 rejected false positives, 69 pending reports, and two
+  previously unknown CVEs.
+\end{itemize}

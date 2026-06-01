@@ -1,0 +1,15 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper studied how to identify field-level conformance deviations in source
+code implementations from natural-language protocol standards. We presented
+\tool{}, which uses protocol fields as the linking points between standard text
+and implementation code, extracts structured rules from standards, locates
+relevant code evidence, and produces auditable conformance judgments. \tool{}
+requires each judgment to be traceable to concrete standard spans, code
+contexts, and validation results, thereby reducing the risk of misclassification.
+Across multiple real protocol implementations, we submitted 204 reports, of
+which 126 were confirmed or fixed by maintainers, and discovered two previously
+unknown CVEs. These results show that starting from field requirements and
+combining them with code evidence is an effective way to uncover standard
+deviations in protocol implementations.
