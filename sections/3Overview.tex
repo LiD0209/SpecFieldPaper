@@ -37,13 +37,15 @@ or uncertain context, $T$ stores validation-test evidence when the validation
 stage runs, and $R$ is an optional inconsistency reason used only when
 $y=\textsc{Inconsistent}$.
 
-The representation separates standard-derived obligations from later
-implementation judgments. A rule records what the standard requires and where
-that requirement appears; a judgment records whether the implementation
-evidence satisfies it. \tool{} therefore does not rely on naming similarity
-alone. It extracts a structured intermediate representation from the standard
-and maps that representation to variables, code contexts, and runtime behavior
+
+This representation separates standard-derived obligations from implementation 
+judgments. A rule records what the standard requires, under which condition it 
+applies, and where the requirement appears, while a judgment records whether 
+the corresponding implementation evidence satisfies that rule. By making the field, 
+condition, action, and source evidence explicit, \tool{} aligns standard 
+requirements with implementation variables, code contexts, and runtime behavior 
 using both semantic and syntactic evidence.
+
 
 \subsection{Field-Space Construction}
 \label{sec:fieldspace}
@@ -57,29 +59,29 @@ parameter tables, and field-definition paragraphs. For each field, \tool{}
 records its canonical name, aliases, parent message or structure, type,
 allowed values when available, and source locations.
 
-\textbf{Document preprocessing.}
-\tool{} ingests RFC-style text, PDF, DOC, and TXT documents. To preserve local
-semantic coherence, it splits the document into paragraphs and greedily merges
-consecutive paragraphs into bounded text blocks without splitting a paragraph
-in the middle. When adding the next paragraph would exceed the configured
-threshold, the current block is committed and a new block starts from that
-paragraph. The default threshold is 6000 characters and can be adjusted by
-configuration. These stable, tokenizer-independent blocks are used both for
-field discovery and for later rule extraction.
+\tool{} first preprocesses input protocol standards, including RFC-style specifications 
+and other protocol standards provided in formats such as PDF, DOC, or TXT.  To preserve 
+local semantic coherence, it splits each document into paragraphs and greedily merges 
+consecutive paragraphs into bounded text blocks without splitting a paragraph in the 
+middle. When adding the next paragraph would exceed the configured threshold, the current 
+block is committed and a new block starts from that paragraph. The default threshold is 
+6000 characters and can be adjusted by configuration. These stable, tokenizer-independent 
+blocks are used for both field discovery and later rule extraction.
 
-The field space gives the extractor a closed set of referents. This reduces the
-chance that descriptive notions such as ``compatibility mode'' are mistaken
-for checkable fields, while still preserving cross-document identity: the same
-field may appear as a full path, short name, structure member, or contextual
-pronoun. \tool{} treats two mentions as the same field only when their parent
-context and semantic role are compatible. Generic names such as \emph{length},
-\emph{type}, or \emph{flags} are therefore not merged across unrelated
-messages. During rule extraction, every field reference must resolve to one or
-more field-space entries; ambiguous references are kept as uncertainty rather
-than silently collapsed. Entries with missing parent context, incompatible
-aliases, or only weak prose evidence are marked ambiguous or out of scope. This
-conservative policy favors precision over recall because an incorrect field
-merge can mislead every downstream alignment and reasoning step.
+The field space defines a constrained set of protocol objects that can be
+referenced during rule extraction. Since protocol standards frequently reuse
+generic field names across different message structures, field references
+cannot be reliably resolved without local structural context. For example,
+names such as \texttt{length}, \texttt{type}, and \texttt{flags} may denote
+different fields in different messages, while descriptive terms such as
+``compatibility mode'' may refer to protocol behavior rather than concrete
+field objects. Therefore, \tool{} resolves each field reference by jointly
+considering its parent message or structure, aliases, semantic role, and source
+location. Two field references are merged only when these contextual attributes
+are compatible; otherwise, the reference is retained as ambiguous or excluded
+from the scope of field-level checking. This conservative resolution strategy
+reduces erroneous field merges and prevents such errors from propagating to
+subsequent rule-to-code alignment and consistency reasoning.
 
 \subsection{Field-Centric Rule Extraction}
 \label{sec:rules}
@@ -89,46 +91,45 @@ normative standard sections. For each section, the model receives the section
 text, the field-space entries relevant to that section, and a lexicon of RFC
 2119-style normative keywords. Within this constrained context, it identifies
 normative statements, resolves mentioned protocol objects to field-space
-entries, and emits records under the schema in Table~\ref{tab:ruleschema}.
-\emph{MAY}-level statements are filtered out because they do not impose
-required behavior in our checking scope.
+entries, and emits normalized field-level rules.
 
-For example, RFC 8446 defines the TLS 1.3 \texttt{Cookie} extension body as
-\texttt{opaque cookie<1..2\^{}16-1>}, so a zero-length cookie in a
-\texttt{HelloRetryRequest} is invalid~\cite{rfc8446}. At this stage, \tool{}
-has only analyzed the standard and extracted a rule; the reasoning-and-test
-agent has not yet judged any implementation behavior:
+For example, RFC 8446 specifies the TLS 1.3 \texttt{Cookie} extension as a
+\texttt{Cookie} structure whose \texttt{cookie} field is encoded as
+\texttt{opaque cookie<1..2\^{}16-1>}~\cite{rfc8446}. Since this vector
+definition permits only non-empty values, a \texttt{HelloRetryRequest}
+carrying a zero-length \texttt{Cookie} violates the field bound. \tool{}
+normalizes this standard constraint into the following simplified field-level
+rule:
 \begin{lstlisting}[style=jsonsnippet]
 {
   "f": "Cookie.cookie",
   "C": "Client receives a TLS 1.3 HRR Cookie.",
   "A": "Reject if Cookie is empty.",
   "M": "MUST",
-  "E": "RFC8446 Sec.4.2.2: cookie<1..2^16-1>"
+  "E": "RFC8446 Sec.4.2.2: ...cookie<1..2^16-1>..."
 }
 \end{lstlisting}
 
-\begin{table}[t]
-\centering
-\caption{Rule schema used by \tool.}
-\label{tab:ruleschema}
-\small
-\begin{tabularx}{\columnwidth}{@{}l>{\raggedright\arraybackslash}X@{}}
-\toprule
-\textbf{Attribute} & \textbf{Description} \\
-\midrule
-Field & Constrained protocol field or parameter \\
-Condition & Message type, state, phase, or field predicate \\
-Action & Presence, value, derivation, relation, or rejection \\
-Modality & MUST, MUST NOT, SHOULD, or equivalent phrase \\
-Evidence & Source section, sentence span, and referenced text \\
-\bottomrule
-\end{tabularx}
-\end{table}
+% \begin{table}[t]
+% \centering
+% \caption{Rule schema used by \tool.}
+% \label{tab:ruleschema}
+% \small
+% \begin{tabularx}{\columnwidth}{@{}l>{\raggedright\arraybackslash}X@{}}
+% \toprule
+% \textbf{Attribute} & \textbf{Description} \\
+% \midrule
+% Field & Constrained protocol field or parameter \\
+% Condition & Message type, state, phase, or field predicate \\
+% Action & Presence, value, derivation, relation, or rejection \\
+% Modality & MUST, MUST NOT, SHOULD, or equivalent phrase \\
+% Evidence & Source section, sentence span, and referenced text \\
+% \bottomrule
+% \end{tabularx}
+% \end{table}
 
-\textbf{Local scope and validation.}
-This design confines rule extraction to local sections and a known field set,
-instead of asking the model to infer rules from the whole standard at once.
+\tool{} confines rule extraction to local sections and a known field set,
+rather than asking the model to infer rules from the whole standard at once.
 The field space provides a traceable referential basis for protocol objects, so
 each emitted rule can be linked back to concrete fields and source text. For
 normative sentences that contain multiple constraints, \tool{} splits them into
@@ -136,17 +137,16 @@ multiple field-level rules, each corresponding to an independent checkable
 behavior such as field presence, value constraints, range checks, state
 updates, or rejection behavior.
 
-\textbf{Normalization and validation.}
-The action families are close to implementation behavior: \emph{assign},
-\emph{derive}, \emph{select}, \emph{require-present},
-\emph{require-absent}, \emph{compare}, \emph{range-check},
-\emph{state-update}, and \emph{reject}. When one sentence contains multiple
-constraints, \tool{} atomizes it into multiple rules so each rule can be
-aligned and tested independently. Negated requirements are rewritten into
-explicit actions, e.g., ``MUST NOT accept $x$'' becomes an expected
-\emph{reject} action under condition $x$. Cross-references are expanded when
-the referenced section defines a relevant field or bound, while the normalized
-rule remains linked to the original text.
+The extracted rules are further normalized into action families that are close
+to implementation behavior, including \emph{assign}, \emph{derive},
+\emph{select}, \emph{require-present}, \emph{require-absent},
+\emph{compare}, \emph{range-check}, \emph{state-update}, and \emph{reject}.
+When one sentence contains multiple constraints, \tool{} atomizes it into
+multiple rules so each rule can be aligned and tested independently. Negated
+requirements are rewritten into explicit actions; for example, ``MUST NOT
+accept $x$'' becomes an expected \emph{reject} action under condition $x$.
+Cross-references are expanded when the referenced section defines a relevant
+field or bound, while the normalized rule remains linked to the original text.
 
 A deterministic checker validates the model output before alignment. It checks
 that field references resolve to field-space entries, the cited source span
@@ -157,7 +157,7 @@ turned into unauditable rules. Normative text outside the field-level scope,
 such as performance guidance or cryptographic assumptions requiring proof, is
 recorded as out of scope instead of silently lost.
 
-\subsection{Syntax-Aware Rule-to-Code Alignment}
+\noindent \subsection{Syntax-Aware Rule-to-Code Alignment}
 \label{sec:alignment}
 
 The alignment stage maps each rule $r$ to implementation variables and code
@@ -166,28 +166,27 @@ semantic retrieval can select comments that resemble the standard but do not
 manipulate the constrained field, while pure exact matching misses renamed or
 split representations.
 
-\textbf{File ranking and variable localization.}
-\tool{} first summarizes candidate C/C++ files using paths, function
-signatures, structure and enum definitions, comments, and hits on field
-aliases. An LLM-based ranker uses the rule, action class, aliases, and file
-summaries to select files likely to contain the field representation or its
-checking logic. For the constrained field, \tool{} constructs aliases by
-tokenizing field names, normalizing naming styles, and expanding common
-abbreviations, parent message names, and parent structure names. Within the
-ranked files, \tool{} builds a Tree-sitter-based symbol index~\cite{tree_sitter}
-covering variables, structure members, enum constants, macros, and function
-parameters. For each indexed entity, it records declaration locations, use
-locations, scope, and enclosing function. Candidate identifiers are then ranked
-by alias matches, token overlap, scope, and syntactic usage patterns. A field
-candidate receives higher priority when it appears in assignments,
-comparisons, bounds checks, state updates, or error-return logic relevant to
-the rule action, and lower priority when it is a generic temporary or lacks
-action-relevant use.
+\noindent \textbf{File ranking and variable localization.}
+Given a field-level rule, \tool{} first narrows the search space to files that
+are likely to contain the field representation or its checking logic. It
+summarizes candidate C/C++ files using lightweight structural and lexical
+signals, such as file paths, declarations, comments, and field-alias hits. An
+LLM-based ranker then selects the most relevant files based on the rule,
+action class, aliases, and file summaries. Within the ranked files, \tool{}
+localizes candidate implementation variables for the constrained field. It
+constructs aliases from the field name, its parent message or structure, and
+common naming variants, and builds a Tree-sitter-based symbol
+index~\cite{tree_sitter} over program entities such as variables, structure
+members, macros, and parameters. Candidate identifiers are ranked by how well
+they match the field aliases and by whether their usage is relevant to the
+rule action. For example, identifiers used in bounds checks, comparisons,
+state updates, or error-return paths are prioritized over generic temporaries
+or identifiers without action-relevant usage.
 
-\textbf{Context retrieval.}
+\noindent \textbf{Context retrieval.}
 For each candidate variable $v$, \tool{} retrieves snippets from exact textual
 hits, enclosing symbol scopes, and semantic windows whose tokens overlap the
-rule. Before LLM filtering, each snippet $c$ receives the score
+rule. Before LLM filtering, each snippet $c$ receives the score:
 \begin{equation}
 \begin{aligned}
 S_{\mathrm{ctx}}(c)
@@ -199,17 +198,19 @@ S_{\mathrm{ctx}}(c)
  +b(c).
 \end{aligned}
 \end{equation}
-Here, $\mathbb{I}_{\mathrm{exact}}$ denotes exact variable or alias occurrence,
-$\mathcal{T}_c$, $\mathcal{T}_v$, and $\mathcal{T}_r$ are the code, variable,
-and rule token sets, and $b(c)$ rewards action-relevant usage such as
-initialization, validation, comparison, rejection, error propagation,
-configuration reads, and state updates. We use
-$w_{\mathrm{exact}}=5$, $w_{\mathrm{var}}=0.9$, and
-$w_{\mathrm{rule}}=0.28$ as fixed defaults. These constants encode an ordinal
-retrieval preference: direct field evidence should dominate variable-token
-overlap, which should dominate weak rule-token overlap. Snippets without exact
-variable or alias occurrence are capped to prevent broad semantic similarity
-from overwhelming direct implementation evidence.
+Here, \(\mathbb{I}_{\mathrm{exact}}(c)\) is an indicator for exact evidence: it
+is 1 when snippet \(c\) contains the candidate variable or one of its aliases,
+and 0 otherwise. \(\mathcal{T}_c\), \(\mathcal{T}_v\), and
+\(\mathcal{T}_r\) denote the token sets of the code snippet, the candidate
+variable, and the rule, respectively. The bonus term \(b(c)\) rewards
+action-relevant usage, such as initialization, validation, comparison,
+rejection, error propagation, configuration reads, and state updates. We fix
+the weights to \(w_{\mathrm{exact}}=5\), \(w_{\mathrm{var}}=0.9\), and
+\(w_{\mathrm{rule}}=0.28\). These constants encode an ordinal retrieval
+preference: direct field evidence should dominate variable-token overlap,
+which should dominate weak rule-token overlap. Snippets without exact variable
+or alias occurrence are capped to prevent broad semantic similarity from
+overwhelming direct implementation evidence.
 
 The top snippets are then sent to an LLM semantic filter. The filter sees only
 the rule and ranked snippets, selects the contexts most relevant to the rule,
@@ -217,6 +218,27 @@ and explains the correspondence between each selected snippet and the expected
 behavior. The result is an evidence bundle containing field representations,
 checking logic, call relationships, configuration conditions, and error paths
 for the next stage.
+
+For the empty-Cookie rule, \tool{} localizes the client-side parsing logic related
+to the \texttt{cookie} field during context retrieval and retrieves the following 
+potentially relevant OpenSSL code snippet. The snippet shows how the OpenSSL client 
+reads the Cookie extension, stores its content and length, and reaches the 
+\texttt{decode\_error} path when length parsing fails. During alignment, this snippet 
+is added to the evidence bundle as candidate code evidence; whether a zero-length 
+Cookie check is present is further determined in the subsequent reasoning and 
+validation stage.
+\begin{lstlisting}[style=jsonsnippet]
+if (!PACKET_as_length_prefixed_2(pkt, &cookie)
+        || !PACKET_memdup(&cookie, &s->ext.tls13_cookie,
+                          &s->ext.tls13_cookie_len)) {
+    SSLfatal(s, SSL_AD_DECODE_ERROR, SSL_R_LENGTH_MISMATCH);
+    return 0;
+}
+\end{lstlisting}
+% At alignment time, this snippet is treated only as code evidence: it shows the
+% field representation, parser helper calls, and associated decode-error path.
+% Whether this context satisfies the standard, or instead suggests a missing
+% zero-length rejection, is decided by the reasoning and validation stage.
 
 \subsection{Consistency Reasoning and Validation}
 \label{sec:reasoning}
@@ -228,12 +250,15 @@ code snippets, call relationships, and configuration conditions. It first
 performs static consistency reasoning over this bounded bundle. If the evidence
 implements the required check or handling, the label is
 \textsc{Consistent}; if it contradicts the rule, the label is
-\textsc{Inconsistent}; if a key path is missing, such as a caller, macro
-definition, configuration branch, validation helper, or error-propagation path,
-the label is \textsc{Insufficient}. In the last case, $U$ records both the
-uncertainty and the concrete context request for the next retrieval round.
+\textsc{Inconsistent}. If the current evidence lacks key code context needed
+to settle the rule, such as macro definitions, configuration branches,
+validation helpers, or error-propagation paths, the available evidence is
+insufficient to support a determinate consistency judgment, and the label is
+\textsc{Insufficient}. In this case, $U$ records the missing information to be
+retrieved and stores the targeted retrieval request generated by the LLM for
+the next round.
 
-\begin{algorithm}[!b]
+\begin{algorithm}
 \small
 \DontPrintSemicolon
 \KwIn{Rule $r$, implementation index $I$, maximum rounds $K$}
@@ -255,35 +280,44 @@ $C_0 \leftarrow$ AlignRuleToCode$(r,I)$\;
 \label{alg:reasoning}
 \end{algorithm}
 
-Algorithm~\ref{alg:reasoning} summarizes this evidence-completion loop. A
-determinate label stops the loop. An \textsc{Insufficient} result instead
-turns the missing context into a targeted retrieval query, and the returned
-context is merged into the next reasoning round. This explicit insufficient
-state prevents \tool{} from converting missing evidence into a false
-inconsistency while still making progress toward the code path that can settle
-the rule.
+Algorithm~\ref{alg:reasoning} presents the evidence-completion loop used in
+consistency reasoning. Starting from the initial evidence bundle $C_0$ produced
+by rule-to-code alignment, \tool{} invokes the reasoning step to obtain a
+judgment $o_i$. If the judgment is \textsc{Consistent} or
+\textsc{Inconsistent}, the algorithm returns the result directly. If the
+judgment is \textsc{Insufficient}, the missing information recorded in $U$ is
+converted into a targeted retrieval query, and the newly retrieved context is
+merged into the evidence bundle for the next round. The loop stops when a
+determinate judgment is reached, no new context can be retrieved, or the
+maximum number of rounds is reached. This design allows \tool{} to postpone a
+decision when the current evidence is incomplete, while continuing to expand
+the code context needed to settle the rule.
 
-Static reasoning alone can still be wrong: a check absent from a local snippet
-may be enforced by an upper-level caller, while build options and conditional
-compilation can change the active path. For candidate inconsistencies, the
-validation-test agent therefore receives the rule, defect hypothesis, and code
-evidence, then generates a rule-directed test plan. It attempts to construct
-inputs that violate the standard requirement but are accepted by the
-implementation, or inputs that satisfy the requirement but are rejected. The
-runner can extend an existing unit test, build a small harness around a parser
-or validation function, or drive a command-line implementation with generated
-inputs.
+Static reasoning can only judge the retrieved code evidence, so it may mistake
+an infeasible branch, code guarded by build options, or a path already filtered
+by an upper-level check for actual implementation behavior. To reduce such
+errors, \tool{} further validates candidate inconsistencies with generated
+tests. The validation-test agent constructs inputs from the field rule and
+defect hypothesis, and drives the implementation through a unit test, parser
+harness, or command-line execution to reach the relevant code path. A candidate
+is kept as a reproducible deviation only when the execution shows that the
+implementation accepts an input that violates the standard, or rejects an input
+that satisfies it; otherwise, the static hypothesis is not promoted to a
+confirmed report.
 
-The OpenSSL empty-cookie case follows this sequence. The extracted rule says
-that a TLS 1.3 client must reject an empty \texttt{Cookie}. Static reasoning
-then checks the aligned parser context and finds that the client reads and
-stores the cookie using \texttt{PACKET\_as\_length\_prefixed\_2} and
-\texttt{PACKET\_memdup}, while the reported snippet has no explicit
-zero-length rejection. This is a defect hypothesis. The validation test then
-injects an empty \texttt{HelloRetryRequest} cookie and observes that the client
+The OpenSSL empty-Cookie case illustrates this process. \tool{} first extracts
+a field rule from RFC 8446: a TLS 1.3 client should reject a zero-length
+\texttt{Cookie}. During static reasoning, \tool{} examines the aligned parser
+context and finds that the OpenSSL client reads and stores the Cookie data and
+its length through \texttt{PACKET\_as\_length\_prefixed\_2} and
+\texttt{PACKET\_memdup}, but this context contains no explicit zero-length
+check. \tool{} therefore treats it as a candidate inconsistency and passes it
+to the validation test for further confirmation. The validation stage
+constructs a \texttt{HelloRetryRequest} carrying an empty Cookie extension and
+observes that the client does not abort the handshake immediately, but instead
 sends a second \texttt{ClientHello} before failing later~\cite{opensslissue30868}.
-The final report object combines the rule, code evidence, runtime observation,
-and inconsistency reason:
+The final inconsistency record contains the field rule, code evidence, runtime
+observation, and inconsistency explanation:
 \begin{lstlisting}[style=jsonsnippet]
 {
   "y": "Inconsistent",
@@ -295,7 +329,7 @@ and inconsistency reason:
     "code": {
       "file": "ssl/statem/extensions_clnt.c",
       "lines": "2372-2377",
-      "text": "PACKET_as_length_prefixed_2(...) || PACKET_memdup(...); no len==0 check"
+      "text": "if (!PACKET_as_length_prefixed_2..."
     }
   },
   "U": [],
@@ -308,14 +342,13 @@ and inconsistency reason:
 }
 \end{lstlisting}
 
-\tool{} confirms an inconsistency only when the validation run reaches the
-target path and the observed behavior contradicts the field rule. For confirmed
-inconsistencies, the system generates a structured report and reproduction
-artifacts, recording the field rule, related standard text, key code snippets,
-inconsistency rationale, test input, build configuration, execution command,
-observed result, and log summary. This forms a traceable evidence chain from
-the standard requirement to code evidence and then to runtime behavior,
-supporting later review and reproduction. For unconfirmed results, the system
-does not promote the static defect hypothesis to a confirmed issue; instead, it
-records the blocking condition, such as a build failure, an unreachable target
-path, a missing test entry point, or an insufficient observation signal.
+For confirmed inconsistencies, \tool{} generates structured reports and reproduction
+artifacts, recording the field rule, related standard text, key code snippets, 
+inconsistency rationale, test input, build configuration, execution command, 
+observed result, and log summary. This forms a traceable evidence chain from the 
+standard requirement to code evidence and then to runtime behavior, supporting 
+later review and reproduction. For unconfirmed results, the system does not 
+promote the static defect hypothesis to a confirmed issue; instead, it records 
+the blocking condition, such as a build failure, an unreachable target path, 
+a missing test entry point, or an insufficient observation signal.
+

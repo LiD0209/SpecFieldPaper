@@ -57,13 +57,19 @@ review, and reproducible tests. This also means that some results depend on
 external feedback and follow-up validation, and the current statistics only
 reflect the adjudication status at the time of evaluation.
 
-\noindent \textbf{Cost and scalability.}
-Multi-round reasoning and validation are more expensive than one-shot
-prompting. \tool{} reduces cost by caching standard-extraction results,
-compressing code contexts, and invoking validation only for suspicious or
-unresolved samples. Deployment in large protocol ecosystems still requires
-prioritization; one practical strategy is to first analyze check targets with
-high security relevance, dense historical defects, or strong rule constraints.
+\noindent \textbf{Cost and Human Effort.}
+\tool{} reduces model cost by caching standard-extraction results,
+compressing code contexts, and invoking the validation stage only for
+suspicious samples or samples with insufficient evidence. Nevertheless,
+multi-round reasoning and validation still incur higher model-calling costs
+than one-shot prompting, and report confirmation still requires some manual
+involvement. The manual effort mainly comes from reviewing candidate
+inconsistencies, including checking report accuracy, filtering a small number
+of false positives, confirming the execution results, and submitting reports to
+maintainers with follow-up communication.
+% Deployment in large protocol ecosystems still requires
+% prioritization; one practical strategy is to first analyze check targets with
+% high security relevance, dense historical defects, or strong rule constraints.
 
 \noindent \textbf{Threats to validity.}
 Our evaluation may be affected by manual adjudication and model stability.

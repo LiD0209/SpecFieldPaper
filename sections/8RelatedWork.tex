@@ -16,15 +16,23 @@ goals: iPanda uses retrieval, LLM agents, and execution feedback to generate
 conformance tests~\cite{sun2025ipanda}, and AUTOSPEC synthesizes formal
 protocol specifications from natural-language documents and implementation
 feedback to support test generation~\cite{liu2025autospec}. These systems also
-use protocol standards to guide analysis, but their outputs are usually rule
-matching results, parser oracles, retrieved code snippets, or dynamic
-counterexamples. The key difference of \tool{} is that it represents each check
-target as a field-level conformance claim and requires the claim to bind the
-standard source, field semantics, applicability condition, implementation
-evidence, and evidence-sufficiency state. This allows \tool{} to trace a
-suspicious behavior to a concrete consistent or inconsistent conclusion about a
-field requirement, rather than only reporting standard-related code snippets or
-anomalous executions.
+use protocol standards to guide implementation analysis, but their outputs are
+usually rule-matching results, parser oracles, retrieved code snippets, or
+dynamic counterexamples. In contrast, \tool{} models each check target as a
+field-level conformance claim, rather than remaining at the level of standard
+sentences or code fragments. Each claim binds the standard source, field
+semantics, applicability condition, implementation evidence, and
+evidence-sufficiency state, forming an evidence chain from specification fields
+to implementation variables and runtime behavior. This field-level modeling
+allows \tool{} to characterize the correspondence between standard requirements
+and implementation behavior at a finer granularity, especially for subtle
+deviations in field values, state-dependent conditions, compound constraints,
+and error handling. Our evaluation shows that \tool{} uncovers several
+implementation deviations that, to the best of our knowledge, had not been
+reported by prior standard-to-code checking work.
+
+% The experimental results show that \tool{} can discover multiple implementation
+% deviations that were not reported by prior standard-to-code checking work.
 
 \noindent \textbf{Protocol testing.}
 Traditional conformance suites and protocol fuzzers provide strong executable
