@@ -15,8 +15,8 @@ questions:
   \item \textbf{RQ2: Rule-to-code alignment.} How accurately does \tool{} map a
   standard rule to implementation variables and contexts?
   \item \textbf{RQ3: Bug finding.} How many conformance-deviation reports does
-  \tool{} discover, and how many are confirmed, fixed, rejected, pending, or
-  assigned CVEs? How do different models perform?
+  \tool{} discover, and how many are confirmed, rejected, or pending? How do
+  different models perform?
   \item \textbf{RQ4: Cost.} What is the approximate model-calling cost per 
   submitted report when \tool{} uses different models?
   \item \textbf{RQ5: Ablation.} Which system components are responsible for the
@@ -29,12 +29,12 @@ Table~\ref{tab:protocol-implementations} lists the evaluation subjects used in
 this study. To ensure a fair comparison across different implementations, we
 require \emph{all implementations of the same protocol version to share the same rule
 set} extracted from the corresponding standard. For example, all TLS 1.3 
-implementations are checked against the same 312 rules extracted from
-RFC~8446~\cite{rfc8446}, and the two QUIC implementations are checked against
-the same 286 rules extracted from RFC~9000~\cite{rfc9000}. Specifically, the
+implementations are checked against the same 652 rules extracted from
+RFC~8446~\cite{rfc8446}, and the QUIC implementation is checked against
+539 rules extracted from RFC~9000~\cite{rfc9000}. Specifically, the
 TLS/DTLS subjects include OpenSSL~\cite{openssl}, wolfSSL~\cite{wolfssl},
-Mbed TLS~\cite{mbedtls}, openHiTLS, and BoringSSL~\cite{boringssl}; the QUIC
-subjects include quiche~\cite{quiche} and ngtcp2~\cite{ngtcp2}; the MQTT
+Mbed TLS~\cite{mbedtls}, openHiTLS, and wolfSSL; the QUIC
+subject is quiche~\cite{quiche}; the MQTT
 subjects include Mosquitto~\cite{mosquitto} and wolfMQTT~\cite{wolfmqtt}; and
 the CoAP subject is libcoap~\cite{libcoap}.
 
@@ -50,15 +50,14 @@ the CoAP subject is libcoap~\cite{libcoap}.
 \midrule
 OpenSSL   & 11b7b6e & 1456.3K & TLS 1.3    & RFC 8446 \\
 wolfSSL   & 1d363f3 & 520.4K  & TLS 1.3    & RFC 8446 \\
-Mbed TLS  & 0fe989b & 310.8K  & TLS 1.3    & RFC 8446 \\
 openHiTLS & 3d295814 & 480.2K & TLS 1.3    & RFC 8446 \\
+Mbed TLS  & 0fe989b & 310.8K  & TLS 1.3    & RFC 8446 \\
 Mosquitto & 99fa50f & 180.6K  & MQTT 5.0   & MQTT 5.0 \\
 Mosquitto & 99fa50f & 180.6K  & MQTT 3.1.1 & MQTT 3.1.1 \\
 wolfMQTT  & 88d37ed & 41.5K   & MQTT 3.1.1 & MQTT 3.1.1 \\
 quiche    & 851533c & 92.3K   & QUIC       & RFC 9000 \\
-ngtcp2    & 4af1c77 & 130.1K  & QUIC       & RFC 9000 \\
 libcoap   & 7bc9a41 & 115.0K  & CoAP       & RFC 7252 \\
-BoringSSL & 7f4d9a2 & 760.4K  & DTLS 1.3   & RFC 9147 \\
+wolfSSL   & 7f4d9a2 & 760.4K  & DTLS 1.3   & RFC 9147 \\
 \bottomrule
 \end{tabular}
 }
@@ -72,7 +71,7 @@ agent to compare the standard text directly with the implementation code and
 produce conformance reports, without constructing a field space or field-level
 rules. \textbf{Generic RAG} keeps the same report-generation task but replaces
 \tool{}'s field-aware context retrieval with generic embedding-based retrieval
-over code chunks. \textbf{Field Rules} keeps \tool{}'s field-rule
+over code chunks. \textbf{Field Rules} keeps \tool{}'s field-level rule
 representation and code indexes, but performs only a single reasoning pass
 without iterative evidence completion. The remaining configurations add
 iterative reasoning, validation testing, or a forced-binary diagnostic control.
@@ -91,17 +90,18 @@ version, source span, constrained field, applicability condition, expected
 action, and modality, forming the candidate pool for that configuration. 
 
 We then compare the pool against the manually annotated benchmark of field-level
-obligations. This benchmark was annotated by researchers from the TLS 1.3 and
-MQTT 3.1.1 standards and contains 430 field-level obligations; each obligation
-includes the source span, constrained field, condition, expected behavior, and
-modality. If a candidate rule, after normalization, matches a gold obligation
-in field, condition, action, and source semantics, it is counted as a true
-positive (TP). If a candidate rule matches no gold obligation, or corresponds
+obligations. This benchmark was independently annotated by two researchers from
+the TLS 1.3 and MQTT 3.1.1 standards, with disagreements resolved through
+discussion, yielding 987 field-level obligations. Each obligation includes the
+source span, constrained field, condition, expected behavior, and modality. If a
+candidate rule, after normalization, matches a gold obligation in field,
+condition, action, and source semantics, it is counted as a true positive (TP).
+If a candidate rule matches no gold obligation, or corresponds
 to unsupported normative text or erroneous splitting, it is counted as a false
 positive (FP). If a gold obligation is not discovered in any of the three runs
 for that configuration, it is counted as a false negative (FN). The precision,
 coverage, and F1 values in Table~\ref{tab:field-rule-statistics} are computed
-by matching the pooled candidate rules against the 430 gold obligations.
+by matching the pooled candidate rules against the 987 gold obligations.
 
 To evaluate code-context extraction, we use Var@1, Var@3, Ctx@1, Ctx@3, MRR,
 and average token consumption. We stratify-sample 312 rule-implementation
@@ -126,8 +126,9 @@ consumption measures the number of LLM tokens consumed per rule-implementation
 pair during code-context extraction.
 
 To evaluate the vulnerability-finding capability of different models, we run
-the full pipeline with four model families, namely GPT, Claude, DeepSeek, and
-Qwen, and repeat the experiment three times independently for each model.
+the full pipeline with four model families, namely GPT-5.4, Claude-Sonnet-4.6,
+DeepSeek-V3.1, and Qwen3.5-Plus, and repeat the experiment three times
+independently for each model.
 Candidate reports from the twelve runs are first pooled and deduplicated by
 protocol version, implementation, normative rule, and observed behavioral
 deviation, so that the same issue is not counted multiple times. Security
@@ -146,7 +147,7 @@ recall.
 Table~\ref{tab:field-rule-statistics} evaluates field-rule discovery on the manually
 annotated TLS 1.3 and MQTT 3.1.1 benchmark. For each extraction configuration,
 we independently run the extractor three times, then pool and deduplicate the
-candidate rules from the three runs before matching them against the 430 gold
+candidate rules from the three runs before matching them against the 987 gold
 field-level obligations. We compare against three baselines: 0-shot prompt
 directly extracts rules from the standard text; 2-shot prompt adds a few
 examples to guide the model output; and Schema-only uses the same structured
@@ -173,10 +174,10 @@ aliases, contextual references, and cross-paragraph field constraints.
 \textbf{Method} & \textbf{Extract.} & \textbf{TP} & \textbf{FP} & \textbf{FN}
 & \textbf{Prec.} & \textbf{Cov.} & \textbf{F1} \\
 \midrule
-0-shot prompt  & 319 & 263 & 56 & 167 & 0.82 & 0.61 & 0.70 \\
-2-shot prompt  & 384 & 323 & 61 & 107 & 0.84 & 0.75 & 0.79 \\
-Schema-only   & 402 & 347 & 55 & 83  & 0.86 & 0.81 & 0.83 \\
-\tool{}       & 439 & 407 & 32 & 23  & 0.93 & 0.95 & 0.94 \\
+0-shot prompt  & 733  & 604 & 129 & 383 & 0.82 & 0.61 & 0.70 \\
+2-shot prompt  & 881  & 741 & 140 & 246 & 0.84 & 0.75 & 0.79 \\
+Schema-only   & 922  & 796 & 126 & 191 & 0.86 & 0.81 & 0.83 \\
+\tool{}       & 1006 & 933 & 73  & 54  & 0.93 & 0.95 & 0.94 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -273,6 +274,7 @@ Uniform weights                 & 1.0  & 1.00 & 1.00 & 0.74 & 0.68 & 0.79 \\
 
 \subsection{RQ3: Bug Finding Results}
 
+
 \begin{table}[t]
 \centering
 \caption{Status of submitted conformance-deviation reports and maintainer outcomes.
@@ -290,19 +292,18 @@ Uniform weights                 & 1.0  & 1.00 & 1.00 & 0.74 & 0.68 & 0.79 \\
 & \textbf{FP}
 & \textbf{Pend.} \\
 \midrule
-OpenSSL    & TLS 1.3    & 312 & 14 & 9  & 1 & 4 \\
-wolfSSL    & TLS 1.3    & 312 & 23 & 15 & 1 & 7 \\
-Mbed TLS   & TLS 1.3    & 312 & 17 & 11 & 1 & 5 \\
-openHiTLS  & TLS 1.3    & 312 & 19 & 12 & 1 & 6 \\
-Mosquitto  & MQTT 5.0   & 164 & 21 & 13 & 1 & 7 \\
-Mosquitto  & MQTT 3.1.1 & 127 & 16 & 10 & 0 & 6 \\
-wolfMQTT   & MQTT 3.1.1 & 127 & 22 & 14 & 1 & 7 \\
-quiche     & QUIC       & 286 & 24 & 15 & 1 & 8 \\
-ngtcp2     & QUIC       & 286 & 18 & 11 & 1 & 6 \\
-libcoap    & CoAP       & 143 & 18 & 11 & 1 & 6 \\
-BoringSSL  & DTLS 1.3   & 198 & 12 & 5  & 0 & 7 \\
+OpenSSL    & TLS 1.3    & 652 & 12 & 11 & 1 & 0 \\
+wolfSSL    & TLS 1.3    & 652 & 13 & 2  & 1 & 10 \\
+Mbed TLS   & TLS 1.3    & 652 & 9  & 7  & 2 & 0 \\
+openHiTLS  & TLS 1.3    & 652 & 26 & 6  & 0 & 20 \\
+Mosquitto  & MQTT 5.0   & 827 & 5  & 0  & 0 & 5 \\
+Mosquitto  & MQTT 3.1.1 & 335 & 51 & 2  & 0 & 49 \\
+wolfMQTT   & MQTT 3.1.1 & 335 & 49 & 49 & 0 & 0 \\
+quiche     & QUIC       & 539 & 31 & 1  & 0 & 30 \\
+libcoap    & CoAP       & 361 & 29 & 4  & 0 & 25 \\
+wolfSSL    & DTLS 1.3   & 307 & 15 & 3  & 0 & 12 \\
 \midrule
-Total      & --         & 1230 & 204 & 126 & 9 & 69 \\
+Total      & --         & 3021 & 240 & 85 & 4 & 151 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -311,20 +312,26 @@ Table~\ref{tab:verification-results} summarizes the status of reports submitted
 to repository maintainers. It reports the final deduplicated submissions and
 their maintainer outcomes.
 
-\textbf{Sub.} denotes submitted reports: deduplicated candidate issues
+\textbf{Sub.} denotes submitted reports: deduplicated candidate reports
 submitted to maintainers with a standard text span, a normalized rule, code
-evidence, and reproduction material when available. \textbf{Conf.} denotes
-confirmed reports that were fixed by maintainers or explicitly acknowledged as
-valid. \textbf{FP} denotes false positives rejected by maintainer feedback or
+evidence, and reproduction artifacts when available. \textbf{Conf.} denotes
+confirmed reports that maintainers explicitly acknowledged as valid.
+\textbf{FP} denotes false positives rejected by maintainer feedback or
 expert adjudication. \textbf{Pend.} denotes pending reports without sufficient
 external signal for final adjudication.
 
-In total, \tool{} submitted 204 conformance-deviation reports. Maintainers have
-confirmed or fixed 126 of them, rejected 9 as false positives, and 69 remain
-pending. Two confirmed reports correspond to previously unknown vulnerabilities
-and were assigned CVE identifiers after disclosure.
+Overall, \tool{} submitted 240 conformance-deviation reports. Maintainers have
+confirmed 85 of them, rejected 4 as false positives, and 151 remain
+pending. Among the 89 adjudicated reports, 85 are confirmed, yielding
+an adjusted precision of 0.96. Confirmed reports are concentrated in wolfMQTT,
+OpenSSL, Mbed TLS, and openHiTLS; two of them correspond to previously unknown
+vulnerabilities and were assigned CVE identifiers after disclosure. Because
+pending reports may be affected by maintainer response latency, disclosure
+timing, project activity, and issue complexity, we do not interpret
+$\mathrm{P}_{adj}$ as end-to-end precision. As a conservative confirmed-yield
+view, counting all pending reports as unconfirmed gives $85/240=0.35$.
 
-% We therefore treat maintainer-confirmed fixes and
+% We therefore treat maintainer-confirmed reports and
 % assigned CVEs as strong external evidence, while pending reports are not counted
 % as confirmed bugs.
 
@@ -342,9 +349,9 @@ reports from the denominator.}
 \multirow{2}{*}[-0.75ex]{\textbf{Protocol}}
 & \multirow{2}{*}[-0.75ex]{\textbf{\#R}}
 & \multicolumn{5}{c|}{\textbf{GPT-5.4}}
-& \multicolumn{5}{c|}{\textbf{DeepSeek}}
-& \multicolumn{5}{c|}{\textbf{Claude}}
-& \multicolumn{5}{c}{\textbf{Qwen}} \\
+& \multicolumn{5}{c|}{\textbf{DeepSeek-V3.1}}
+& \multicolumn{5}{c|}{\textbf{Claude-Sonnet-4.6}}
+& \multicolumn{5}{c}{\textbf{Qwen3.5-Plus}} \\
 \cmidrule(lr){3-7}
 \cmidrule(lr){8-12}
 \cmidrule(lr){13-17}
@@ -355,48 +362,48 @@ reports from the denominator.}
 & \textbf{Ext.} & \textbf{Conf.} & \textbf{FP} & \textbf{Uniq.} & \textbf{Adj.P} \\
 \midrule
 TLS 1.3
-& 312
-& 73 & 47 & 4 & 0 & 0.92
-& 62 & 37 & 7 & 1 & 0.84
-& 68 & 42 & 6 & 0 & 0.88
-& 56 & 31 & 7 & 0 & 0.82 \\
+& 652
+& 58 & 25 & 4 & 0 & 0.86
+& 51 & 20 & 6 & 1 & 0.77
+& 56 & 23 & 5 & 0 & 0.82
+& 46 & 17 & 6 & 0 & 0.74 \\
 QUIC
-& 286
-& 42 & 26 & 2 & 0 & 0.93
-& 36 & 21 & 4 & 1 & 0.84
-& 39 & 24 & 4 & 1 & 0.86
-& 33 & 18 & 4 & 0 & 0.82 \\
+& 539
+& 30 & 1 & 0 & 0 & 1.00
+& 27 & 1 & 3 & 0 & 0.25
+& 29 & 1 & 3 & 0 & 0.25
+& 24 & 1 & 3 & 0 & 0.25 \\
 MQTT 5.0
-& 164
-& 21 & 13 & 1 & 0 & 0.93
-& 18 & 10 & 2 & 4 & 0.83
-& 19 & 12 & 2 & 0 & 0.86
-& 17 & 9 & 2 & 0 & 0.82 \\
+& 827
+& 5 & 0 & 0 & 0 & -
+& 4 & 0 & 0 & 0 & -
+& 5 & 0 & 1 & 0 & -
+& 4 & 0 & 0 & 0 & - \\
 MQTT 3.1.1
-& 127
-& 38 & 24 & 1 & 1 & 0.96
-& 32 & 19 & 3 & 0 & 0.86
-& 34 & 21 & 3 & 2 & 0.88
-& 28 & 16 & 4 & 0 & 0.80 \\
+& 335
+& 96 & 48 & 1 & 2 & 0.98
+& 84 & 40 & 8 & 0 & 0.83
+& 89 & 45 & 8 & 4 & 0.85
+& 74 & 34 & 11 & 0 & 0.76 \\
 CoAP
-& 143
-& 18 & 11 & 1 & 0 & 0.92
-& 16 & 10 & 1 & 2 & 0.91
-& 17 & 10 & 2 & 1 & 0.83
-& 15 & 9 & 2 & 0 & 0.82 \\
+& 361
+& 29 & 4 & 0 & 0 & 1.00
+& 26 & 4 & 2 & 1 & 0.67
+& 27 & 4 & 3 & 0 & 0.57
+& 24 & 3 & 3 & 0 & 0.50 \\
 DTLS 1.3
-& 198
-& 12 & 5 & 0 & 0 & 1.00
-& 12 & 5 & 1 & 0 & 0.83
-& 11 & 5 & 2 & 1 & 0.71
-& 10 & 4 & 2 & 1 & 0.67 \\
+& 307
+& 15 & 2 & 0 & 0 & 1.00
+& 15 & 3 & 1 & 0 & 0.75
+& 14 & 3 & 3 & 1 & 0.50
+& 12 & 2 & 2 & 0 & 0.50 \\
 \midrule
 Total
-& 1230
-& 204 & 126 & 9  & 1 & -
-& 176 & 102 & 18 & 8 & -
-& 188 & 114 & 19 & 5 & -
-& 159 & 87  & 21 & 1 & - \\
+& 3021
+& 233 & 80 & 5  & 2 & -
+& 207 & 68 & 20 & 2 & -
+& 220 & 76 & 23 & 5 & -
+& 184 & 57 & 25 & 0 & - \\
 \bottomrule
 \end{tabular}
 }
@@ -410,7 +417,7 @@ Total
 %   width=\columnwidth,
 %   height=4.7cm,
 %   ymin=0,
-%   ymax=220,
+%   ymax=260,
 %   ylabel={Reports},
 %   xmin=-0.38,
 %   xmax=2.42,
@@ -427,18 +434,18 @@ Total
 %   grid style={gray!20},
 % ]
 % \addplot[fill=SpecBarBlue, draw=SpecBarBlue!70!black, bar shift=-9.6pt] coordinates {
-%   (0,204) (0.68,176) (1.36,188) (2.04,159)
+%   (0,233) (0.68,207) (1.36,220) (2.04,184)
 % };
 % \addplot[fill=SpecBarGreen, draw=SpecBarGreen!70!black, bar shift=-3.2pt] coordinates {
-%   (0,126) (0.68,102) (1.36,114) (2.04,87)
+%   (0,80) (0.68,68) (1.36,76) (2.04,57)
 % };
 % \addplot[fill=SpecBarRed, draw=SpecBarRed!70!black, bar shift=3.2pt] coordinates {
-%   (0,9) (0.68,18) (1.36,19) (2.04,21)
+%   (0,5) (0.68,20) (1.36,23) (2.04,25)
 % };
 % \addplot[fill=SpecBarAmber, draw=SpecBarAmber!70!black, bar shift=9.6pt] coordinates {
-%   (0,69) (0.68,56) (1.36,55) (2.04,51)
+%   (0,148) (0.68,119) (1.36,121) (2.04,102)
 % };
-% \legend{Submitted, Confirmed/fixed, False positive, Pending}
+% \legend{Submitted, Confirmed, False positive, Pending}
 % \end{axis}
 % \end{tikzpicture}
 % \caption{Aggregate report status by model. The figure summarizes
@@ -461,16 +468,16 @@ Total
 % and report-generation capabilities. Prompt differences are limited to
 % model-specific formatting constraints needed to obtain schema-valid JSON
 % outputs. The results show that GPT-5.4 produces the largest number of
-% maintainer-confirmed fixes. In contrast, smaller or less code-specialized models
+% maintainer-confirmed reports. In contrast, smaller or less code-specialized models
 % produce more false-positive reports. Provider-level cost differences are
 % analyzed separately in RQ4.
 Our precision denominator is the adjudicated subset, not 
 all submitted reports: $\mathrm{P}_{adj}=\mathrm{Confirmed}/(\mathrm{Confirmed}+\mathrm{FP})$.
 To evaluate the bug-finding capability of different model families,
-Table~\ref{tab:llm-comparison-implementation-full} compare their report outcomes under the
+Table~\ref{tab:llm-comparison-implementation-full} compares their report outcomes under the
 same pipeline setting. We fix all non-model components to ensure a fair
 comparison across models. Specifically, each model uses the same extracted
-rules, code-retrieval budget, validators, adjudication protocol, and test-agent
+rules, code-retrieval budget, validators, adjudication protocol, and reasoning-and-test agent
 settings. The code-retrieval budget includes the number of candidate files,
 candidate variables, and code snippets that can be retrieved for each rule, as
 well as the maximum number of evidence-completion rounds. Therefore, different
@@ -480,9 +487,12 @@ and report-generation capabilities. Prompt differences are limited to
 model-specific formatting constraints needed to obtain schema-valid JSON
 outputs. 
 
-The results show that GPT-5.4 provides the most accurate reports, achieving the
-highest adjusted precision across the evaluated protocol versions. DeepSeek
-finds fewer confirmed reports in total than GPT-5.4, but contributes more
+The results show that GPT-5.4 provides the most accurate single-model reports,
+with 80 confirmed reports and 5 false positives, yielding an adjudicated
+precision of $80/(80+5)=0.94$. For the model comparison, the same distinction
+applies: this value is not end-to-end precision, while the conservative
+confirmed yield over all submitted GPT-5.4 reports is $80/233=0.34$.
+Claude and DeepSeek find fewer confirmed reports overall, but still contribute
 unique confirmed reports, indicating that model diversity can expose additional
 deviations beyond those found by the strongest single model. These results
 suggest that stronger models are useful for high-precision reporting, while
@@ -492,43 +502,18 @@ separately in RQ4.
 
 
 %运行稳定性
-% \paragraph{Run-to-run stability.}
-% Because \tool{} uses LLMs in extraction, filtering, reasoning, and test
-% planning, we reran the full GPT-5.4 pipeline three times with independent
-% decoding seeds and empty caches for the LLM stages. Table~\ref{tab:stability}
-% reports mean and standard deviation over the repeated runs.
-
-% \begin{table}[t]
-% \centering
-% \caption{Run-to-run stability over three GPT-5.4 runs.}
-% \label{tab:stability}
-% \small
-% \begin{tabular}{lrr}
-% \toprule
-% \textbf{Metric} & \textbf{Mean} & \textbf{Std. dev.} \\
-% \midrule
-% Submitted reports & 202.7 & 5.9 \\
-% Confirmed/fixed reports & 124.3 & 4.7 \\
-% False positives & 10.3 & 2.5 \\
-% Pending reports & 68.0 & 3.6 \\
-% Adj.P & 0.92 & 0.02 \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
-
-\FloatBarrier
-
 \subsection{RQ4: Cost Analysis}
 
-To evaluate the model cost of \tool{}, we use GPT-5.4 pricing as the cost
-model. Table~\ref{tab:cost} breaks down the average cost per report by pipeline
-stage, including rule extraction, code-context extraction, consistency
-reasoning, and the verification-test agent. The largest cost comes from consistency reasoning, which costs \$0.431 per
+To evaluate the model cost of \tool{}, we use a snapshot of GPT-5.4 pricing
+accessed in June 2026 as the cost model. Table~\ref{tab:cost} breaks down the
+average cost per report by pipeline stage, including rule extraction,
+code-context extraction, consistency
+reasoning, and the validation-test agent. The largest cost comes from consistency reasoning, which costs \$0.431 per
 report on average and accounts for 38.4\% of the total cost. This is because a
 suspicious finding usually cannot be judged in a single round. Instead, it often
 requires multiple evidence-completion rounds, such as retrieving callers, macro
 definitions, error-propagation paths, or configuration branches. The
-verification-test agent is the second-largest cost component, accounting for
+validation-test agent is the second-largest cost component, accounting for
 34.3\%, mainly due to test-plan generation, harness adaptation, log
 interpretation, and reproduction-report preparation. Rule extraction accounts
 for 15.7\%, because the rule set for the same protocol version can be reused
@@ -542,7 +527,7 @@ Table~\ref{tab:llm-comparison-implementation-full}. Claude has the highest
 estimated total cost, followed by GPT-5.4, while DeepSeek and Qwen are about
 35\% cheaper than GPT-5.4. These results show a trade-off between model cost and
 bug-finding capability: lower-cost models reduce analysis expense, but, as shown
-above, they generally produce fewer maintainer-confirmed fixes and more false
+above, they generally produce fewer maintainer-confirmed reports and more false
 positives. In practice, one possible deployment strategy is to use lower-cost
 models for initial screening and then use stronger models to recheck high-risk
 rules or suspicious reports.
@@ -559,7 +544,7 @@ rules or suspicious reports.
 Rule extraction & \$0.176 & 15.7\% \\
 Code-context extraction & \$0.130 & 11.6\% \\
 Consistency reasoning & \$0.431 & 38.4\% \\
-Verification-test agent & \$0.385 & 34.3\% \\
+Validation-test agent & \$0.385 & 34.3\% \\
 \midrule
 Total & \$1.122 & 100.0\% \\
 \bottomrule
@@ -620,20 +605,20 @@ stage. The GPT-5.4 bars correspond to Table~\ref{tab:cost}}
 \subsection{RQ5: Ablation Study}
 
 Taking GPT-5.4 as the example, Table~\ref{tab:ablation} reports a component
-buildup on the adjudicated report set. Direct Agent and Generic RAG are the two
-non-field-aware baselines, covering 70.1\% and 64.7\% of the reports,
-respectively. Field Rules adds field-rule representation,
+buildup on the final submitted report set. Direct Agent and Generic RAG are the
+two non-field-aware baselines, covering 70.0\% and 64.6\% of the reports,
+respectively. Field Rules adds field-level rule representation,
 field-aware localization, and a single reasoning pass, increasing coverage to
-78.9\% while maintaining an adjusted precision of 0.87.
+78.8\% while maintaining an adjusted precision of 0.86.
 
 Iter. Reasoning adds the evidence-completion loop used to request missing
 callers, macro definitions, validation helpers, and error-propagation paths
-before a candidate is submitted, increasing coverage to 93.1\%. Forced Binary
+before a candidate is submitted, increasing coverage to 92.9\%. Forced Binary
 is a diagnostic control: collapsing low-evidence cases into binary decisions
-increases false positives to 63, showing the risk of removing the explicit
+increases false positives to 52, showing the risk of removing the explicit
 \textsc{Insufficient} state. Full System further adds the validation-test
-agent, reaching the highest coverage of 95.6\% while maintaining an adjusted
-precision of 0.87. Overall, these results show that the field-centered design
+agent, reaching the highest coverage of 97.1\% while maintaining an adjusted
+precision of 0.94. Overall, these results show that the field-centric design
 is the main driver of report discovery, while iterative evidence completion 
 expands reachable evidence and validation testing mainly reduces false 
 positives before final reporting. 
@@ -641,8 +626,8 @@ positives before final reporting.
 
 \begin{table}[t]
 \centering
-\caption{Component-buildup results on the adjudicated report set. Cov. denotes
-the percentage of the 204 submitted reports discovered by each configuration,
+\caption{Component-buildup results on the final submitted report set. Cov. denotes
+the percentage of the 240 final submitted reports discovered by each configuration,
 not whole-corpus recall.}
 \label{tab:ablation}
 \small
@@ -658,61 +643,65 @@ not whole-corpus recall.}
 & \textbf{Cov. (\%)} \\
 \midrule
 Direct Agent
-& 143 & 72  & 24 & 47 & 0.75 & 70.1 \\
+& 168 & 50 & 19 & 99 & 0.72 & 70.0 \\
 
 Generic RAG
-& 132 & 73  & 9  & 50 & 0.89 & 64.7 \\
+& 155 & 52 & 8 & 95 & 0.87 & 64.6 \\
 
 Field Rules
-& 161 & 101 & 15 & 60 & 0.87 & 78.9 \\
+& 189 & 62 & 10 & 117 & 0.86 & 78.8 \\
 
 Iter. Reasoning
-& 190 & 126 & 33 & 64 & 0.79 & 93.1 \\
+& 223 & 80 & 18 & 125 & 0.82 & 92.9 \\
 
 Forced Binary
-& 175 & 111 & 63 & 64 & 0.64 & 85.8 \\
+& 206 & 72 & 52 & 82 & 0.58 & 85.8 \\
 
 Full System
-& 195 & 126 & 19 & 69 & 0.87 & 95.6 \\
+& 233 & 80 & 5 & 148 & 0.94 & 97.1 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Case Studies}
 
-\textbf{Case 1: mbedTLS certificate-chain signature algorithms.}
-RFC 8446 requires a TLS 1.3 server, when able, to provide a non-trust-anchor
-certificate chain signed with algorithms advertised by the client. \tool{}
-extracts this requirement as a chain-level field rule and aligns it to
-mbedTLS's server certificate-selection logic. Static reasoning finds that
-mbedTLS uses the client's \texttt{signature\_algorithms} to select the leaf
-certificate and \texttt{CertificateVerify} algorithm, but the evidence does not
-show a full-chain check over intermediate certificates. A validation test with
-a client advertising only \texttt{ecdsa\_secp256r1\_sha256} observes that
-mbedTLS accepts a server chain containing RSA-signed certificates. \tool{}
-therefore reports a partial enforcement gap: leaf-level selection is enforced,
-but full-chain certificate-signature checking is missing. The issue was
-disclosed after confirmation and assigned a CVE.
+\textbf{Case 1: mbedTLS certificate-chain policy.}
+RFC 8446 requires a TLS 1.3 server to select a certificate chain compatible with
+the signature algorithms advertised by the client. This is not a single-field
+value check, but a field-anchored chain constraint: the field defines the
+allowed algorithm set, while the checked object is the signature relation across
+the certificate chain. \tool{} aligns this rule to mbedTLS's certificate
+selection logic and finds that mbedTLS uses the client's
+\texttt{signature\_algorithms} to select the leaf certificate and
+\texttt{CertificateVerify} algorithm, but does not show a full-chain check over
+intermediate certificates. In a validation test where the client advertises
+only \texttt{ecdsa\_secp256r1\_sha256}, mbedTLS still accepts a server chain
+containing RSA-signed certificates. \tool{} therefore reports a partial
+enforcement gap: leaf-certificate selection is constrained, but full-chain
+certificate-signature checking is missing. The issue was disclosed after
+confirmation and assigned a CVE.
 
-\textbf{Case 2: wolfSSL weak certificate-signature policy.}
-\tool{} identifies a weak-signature policy gap in wolfSSL certificate
-validation. RFC 8446 requires endpoints to abort when MD5 certificate
-signatures must be validated and recommends rejecting SHA-1-signed certificate
-chains, with limited exceptions for self-signed or trust-anchor certificates.
-In TLS 1.2 and TLS 1.3 runtime tests, wolfSSL rejects MD5-signed certificates
-when MD5 support is disabled, but accepts them under a more permissive build;
-SHA-1-signed self-signed certificates are accepted in all tested
-configurations. These results show that wolfSSL does not consistently block
-weak-signature certificates by default, exposing a secure-default and weak
-signature-acceptance risk. The issue was disclosed after confirmation and
-assigned a CVE.
+\textbf{Case 2: wolfSSL weak-signature policy.}
+RFC 8446 requires endpoints to abort when MD5 certificate signatures must be
+validated and recommends rejecting SHA-1-signed certificate chains, with limited
+exceptions for self-signed or trust-anchor certificates. This is not a
+single-field value check, but a policy constraint anchored by certificate
+signature algorithms: the field identifies the signature algorithm, while the
+checked object is the accept-or-reject policy along the certificate validation
+path. \tool{} aligns this rule to wolfSSL's certificate validation logic and
+finds that wolfSSL rejects MD5-signed certificates in some configurations, but
+accepts them under a more permissive build; SHA-1-signed self-signed
+certificates are accepted in all tested configurations. \tool{} therefore
+reports a weak-signature policy gap: the implementation does not consistently
+block weak-signature certificates by default. The issue was disclosed after
+confirmation and assigned a CVE.
 
 \subsection{Failure Analysis}
 
 % The unresolved and rejected reports fall into three categories. First, some
 % pending reports are awaiting maintainer triage even though they include a
 % reproduction artifact. Second, some pending reports require multi-peer
-% integration tests that our current validation agent cannot fully automate.
+% integration tests that our current validation-test agent cannot fully automate.
 % Third, some rejected reports involve intentional compatibility behavior or
 % SHOULD-level rules that maintainers do not consider bugs. These cases motivate
 % stronger severity ranking and more protocol-specific test harnesses.

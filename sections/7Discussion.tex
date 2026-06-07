@@ -13,13 +13,11 @@ separate modeling and verification.
 \noindent \textbf{Natural-language ambiguity.}
 Ambiguity in standard text can affect rule extraction and conformance
 judgment. For example, a requirement such as "reject malformed messages" may
-not clearly specify the relevant field combinations, compatibility exceptions,
-or error-handling paths. In such cases, \tool{} may misclassify reasonable
-compatibility behavior, or it may miss real defects. Therefore, for rules with
-unclear semantic boundaries or rules that depend on implementation context, the
-final conclusion still requires expert interpretation and maintainer feedback.
-Our artifact preserves the source text, reasoning evidence, and uncertainty
-notes to support subsequent review.
+not clearly specify the relevant field requirements or error-handling paths,
+leading to false judgments or missed reports. For rules with unclear semantic
+boundaries, the final conclusion still requires expert interpretation and
+maintainer feedback; our artifact preserves the source text, reasoning
+evidence, and uncertainty notes to support subsequent review.
 
 \noindent \textbf{LLM dependence.}
 \tool{} uses LLMs for extraction, ranking, semantic filtering, reasoning, and
@@ -29,79 +27,63 @@ error. We mitigate this risk by retaining uncertainty, using low-temperature
 decoding, validating outputs, and requiring executable evidence for confirmed 
 reports.
 
-\noindent \textbf{Source availability.}
-The current prototype relies on source code to locate variables, call
-relationships, and validation logic, and therefore does not support
-closed-source implementations. For implementations produced by code generators,
-or implementations that encapsulate substantial parsing, validation, and
-error-handling logic in macros, semantic cues in the source code may be unstable
-or incomplete, which can affect the quality of specification-to-implementation
-alignment.
-
-\noindent \textbf{Language front-end.}
-The current prototype mainly supports C/C++ protocol implementations. It
-combines syntactic analysis with LLM-assisted filtering to extract code context
-related to field accesses, conditional checks, and error handling from source
-code. For other programming languages, the system still requires corresponding
-language front-ends that provide equivalent code-analysis capabilities. In the
-future, we plan to extend this capability by integrating front-end analysis
-components for additional languages.
-
-\noindent \textbf{Result adjudication.}
-Protocol conformance judgments cannot always be directly determined by the
-authors, because standards may be ambiguous and implementations may adopt
-different behaviors for compatibility. Therefore, system outputs should not be
-treated as final conclusions by themselves. We adjudicate reports as valid
-issues, false positives, or pending based on maintainer feedback, independent
-review, and reproducible tests. This also means that some results depend on
-external feedback and follow-up validation, and the current statistics only
-reflect the adjudication status at the time of evaluation.
-
 \noindent \textbf{Cost and Human Effort.}
 \tool{} reduces model cost by caching standard-extraction results,
 compressing code contexts, and invoking the validation stage only for
 suspicious samples or samples with insufficient evidence. Nevertheless,
 multi-round reasoning and validation still incur higher model-calling costs
-than one-shot prompting, and report confirmation still requires some manual
-involvement. The manual effort mainly comes from reviewing candidate
-inconsistencies, including checking report accuracy, filtering a small number
-of false positives, confirming the execution results, and submitting reports to
-maintainers with follow-up communication.
-% Deployment in large protocol ecosystems still requires
-% prioritization; one practical strategy is to first analyze check targets with
-% high security relevance, dense historical defects, or strong rule constraints.
-
-\noindent \textbf{Threats to validity.}
-Our evaluation may be affected by manual adjudication and model stability.
-First, manually labeled ground truth may be influenced by reviewers'
-interpretations of ambiguous standards. Second, LLM nondeterminism may change
-extraction or reasoning results across runs. We mitigate these threats by using
-two-author adjudication, preserving raw evidence, separating pending reports
-from confirmed fixes, and measuring variance across repeated GPT-5.4 runs and
-different model families.
+than one-shot prompting. Human effort mainly comes from pre-submission review
+of candidate inconsistency reports, including checking report accuracy,
+screening potential false positives, confirming execution results, and
+submitting reports to maintainers with necessary follow-up communication.
+Because each candidate report already contains the standard span, code
+evidence, and validation result, human review usually does not require
+reanalyzing the issue itself. On average, reviewing a candidate report takes
+about two minutes. In addition, the number of misjudgments is small: among the
+adjudicated reports, only four were rejected by maintainers as false positives.
 
 
+\noindent \textbf{Source Code and Language Support.}
+The current prototype relies on source code to locate variables, call
+relationships, validation logic, and error-handling paths, and therefore does
+not support closed-source implementations. \tool{} also depends on explicit
+standard documents; if a standard is missing or does not sufficiently describe
+field semantics and expected behavior, standard-to-implementation alignment is
+limited. In addition, the current prototype mainly supports C/C++ protocol
+implementations. For other programming languages, the system still requires
+corresponding language front-ends that provide equivalent code-analysis
+capabilities. In the future, we plan to extend this capability by integrating
+front-end analysis components for additional languages.
+
+\noindent \textbf{Result Adjudication.}
+Protocol conformance judgments may be affected by ambiguity in standards and by
+compatibility policies adopted by implementations. Therefore, system outputs
+should not be treated as final adjudication results by themselves. We adjudicate
+reports based on maintainer feedback, independent human review, and reproducible
+tests, and classify them as valid issues, false positives, or pending. Thus, the
+statistics reported in this paper reflect the adjudication status at the time of
+evaluation, rather than the final lifecycle outcome of all submitted reports. In
+addition, manually labeled gold standards may be influenced by annotators'
+interpretations of ambiguous standard text, and LLM nondeterminism may change
+rule extraction and reasoning results across runs. We mitigate these threats by
+using two-author adjudication, preserving raw evidence, separating pending
+reports from confirmed reports, and measuring variance across repeated GPT-5.4
+runs and different model families.
 
 
 
 
+% \noindent \textbf{Checking Scope and Ambiguity.}
+% \tool{} primarily targets requirements that can be mapped to protocol fields, trigger conditions, and implementation behavior. It is well suited for local conformance deviations in parsing, validation, negotiation, and error handling. For global properties such as cross-session behavior, long-term state evolution, or requirements with ambiguous semantic boundaries, \tool{} can only provide limited conclusions; strict judgments still require expert interpretation, maintainer feedback, or separate modeling and verification. To support such review, the artifact preserves the source text, reasoning evidence, and uncertainty notes.
 
+% \noindent \textbf{Implementation and Language Support.}
+% The current prototype relies on source code to locate variables, call relationships, validation logic, and error-handling paths. It therefore does not support closed-source implementations, and its alignment quality may be affected by code generators, heavy macro use, or implementations whose semantic cues are incomplete in the source. The current front-end mainly supports C/C++ protocol implementations; other languages require corresponding analysis front-ends with equivalent capabilities.
 
-% \textbf{What would make a report actionable?}
-% Maintainers are unlikely to act on a vague statement that code and standard
-% ``seem inconsistent.'' A useful report should include the exact standard span,
-% the normalized rule, the relevant field and implementation variable, the code
-% path that accepts or rejects the input, the build configuration, and a minimal
-% reproduction script. \tool{} emits this bundle and stores it under a content
-% hash so that reviewers can inspect the evidence without rerunning the full
-% pipeline.
+% \noindent \textbf{LLM Dependence.}
+% \tool{} uses LLMs for extraction, ranking, semantic filtering, reasoning, and test planning. Although these calls are constrained by schemas, field spaces, syntax evidence, and deterministic validators, model errors cannot be fully eliminated. We mitigate this risk by retaining uncertainty, using low-temperature decoding, validating outputs, and requiring executable evidence for confirmed reports.
 
+% \noindent \textbf{Cost and Human Effort.}
+% \tool{} reduces model cost by caching standard-extraction results, compressing code contexts, and invoking validation only for suspicious samples or samples with insufficient evidence. Multi-round reasoning and validation still incur higher model-calling costs than one-shot prompting, but the required human effort is limited. Because each candidate report already contains the standard span, code evidence, and validation result, pre-submission review usually does not require reanalyzing the issue itself. On average, reviewing a candidate report takes about two minutes; among the adjudicated reports, only four were rejected by maintainers as false positives.
 
-% \textbf{Generalization beyond protocols.}
-% The field-centric idea may transfer to other domains where natural-language
-% documents define structured objects, such as file formats, API contracts, or
-% hardware specifications. The representation would need different object spaces:
-% API parameters instead of protocol fields, register bits instead of message
-% fields, or configuration keys instead of transport parameters. This paper
-% focuses on network protocols because their standards and implementations make
-% the alignment problem both important and concrete.
+% \noindent \textbf{Threats to Validity.}
+% Our evaluation may be affected by manual adjudication, maintainer feedback, and model stability. Standards may be ambiguous, implementations may adopt compatibility-driven behavior, and some submitted reports remain pending due to external response latency. LLM nondeterminism may also change extraction or reasoning results across runs. We mitigate these threats by using two-author adjudication, preserving raw evidence, separating pending reports from confirmed reports, and measuring variance across repeated GPT-5.4 runs and different model families.

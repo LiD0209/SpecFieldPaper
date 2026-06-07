@@ -16,7 +16,7 @@ parameter mention against the field space:
 \[
 \begin{aligned}
 C &: \textit{parameter is present in peer transport parameters},\\
-f &: \textit{max\_udp\_payload\_size},\\
+F &: \textit{max\_udp\_payload\_size},\\
 A &: \textit{reject values below 1200 with a protocol error},\\
 M &: \textit{MUST}.
 \end{aligned}
@@ -48,7 +48,7 @@ upper-bound checks are present, yielding a defect hypothesis.
 
 \subsection{From Hypothesis to Validation}
 
-For a suspected mismatch, the validation agent constructs a parameter block
+For a suspected mismatch, the validation-test agent constructs a parameter block
 whose value violates the lower bound. It then chooses the closest available
 entry point: a unit-test parser if one exists, otherwise a small harness around
 the parser function, otherwise a command-line or integration test. The oracle is

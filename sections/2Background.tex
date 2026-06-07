@@ -7,7 +7,7 @@ Protocol conformance asks whether an implementation satisfies the behavioral
 requirements stated by a standard. In natural-language standards, many
 requirements are attached to protocol fields: message fields, parameters,
 lengths, flags, and valid field combinations. We call this scope
-\emph{field-level semantic conformance}.
+\emph{field-level conformance}.
 
 Field-level conformance requires two links: mapping the standard's field and
 condition to implementation objects, and checking whether the relevant code path
@@ -49,7 +49,7 @@ behavior. The modality is stored with each rule and used when ranking reports.
 % If the first retrieved context only shows assignment but not validation, the
 % reasoning agent emits \emph{insufficient evidence} and requests callers or
 % validation helpers. Only after the evidence covers the relevant path does the
-% system report a consistency judgment. For a suspected deviation, the test agent
+% system report a consistency judgment. For a suspected deviation, the validation-test agent
 % attempts to construct a packet or configuration that exercises the suspicious
 % path and observes whether the implementation accepts or rejects it.
 

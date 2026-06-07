@@ -8,8 +8,8 @@ and implementation code, extracts structured rules from standards, locates
 relevant code evidence, and produces auditable conformance judgments. \tool{}
 requires each judgment to be traceable to concrete standard spans, code
 contexts, and validation results, thereby reducing the risk of misclassification.
-Across multiple real protocol implementations, we submitted 204 reports, of
-which 126 were confirmed or fixed by maintainers, and discovered two previously
+Across multiple real protocol implementations, we submitted 240 reports, of
+which 85 were confirmed by maintainers, and discovered two previously
 unknown CVEs. These results show that starting from field requirements and
 combining them with code evidence is an effective way to uncover standard
 deviations in protocol implementations.
@@ -18,8 +18,8 @@ deviations in protocol implementations.
 
 \noindent \textbf{Data Availability.}
 Our evaluation is designed to support reviewer inspection without violating
-double-blind review. For reports that have been confirmed and fixed by
-maintainers, the artifact uses blinded identifiers and provides the normative
+double-blind review. For confirmed reports included in the artifact, the
+artifact uses blinded identifiers and provides the normative
 standard span, implementation evidence, inconsistency explanation, and
 reproduction scripts. For reports that are still pending or may involve
 undisclosed risks, we do not provide full reproduction materials in order to

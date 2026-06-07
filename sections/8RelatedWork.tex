@@ -3,27 +3,23 @@
 
 \noindent \textbf{Specification-guided protocol analysis.}
 Recent protocol-analysis systems increasingly use standard documents to guide
-implementation checking. RIBDetector extracts RFC-derived rules to identify
-implementation inconsistencies~\cite{chen2022ribdetector}; ParCleanse uses LLMs
-to translate RFC documents into protocol message specifications that serve as
-traceable quasi-oracles for parser validation~\cite{zheng2025parcleanse};
-RFCAudit builds semantic indexes over protocol code and uses an LLM agent to
-retrieve implementation context for RFC-related defect
-detection~\cite{zheng2025rfcaudit}; and ProtocolGuard combines LLM-guided
-program slicing with assertion-guided fuzzing to detect protocol
-non-compliance~\cite{song2026protocolguard}. Other recent systems have similar
-goals: iPanda uses retrieval, LLM agents, and execution feedback to generate
-conformance tests~\cite{sun2025ipanda}, and AUTOSPEC synthesizes formal
-protocol specifications from natural-language documents and implementation
-feedback to support test generation~\cite{liu2025autospec}. These systems also
-use protocol standards to guide implementation analysis, but their outputs are
-usually rule-matching results, parser oracles, retrieved code snippets, or
-dynamic counterexamples. In contrast, \tool{} models each check target as a
-field-level conformance claim, rather than remaining at the level of standard
-sentences or code fragments. Each claim binds the standard source, field
-semantics, applicability condition, implementation evidence, and
-evidence-sufficiency state, forming an evidence chain from specification fields
-to implementation variables and runtime behavior. This field-level modeling
+implementation checking. RIBDetector, RFCAudit, and ProtocolGuard locate
+implementation inconsistencies or protocol non-compliance through RFC-rule
+extraction, semantic code indexing, and LLM-guided program slicing with dynamic
+validation~\cite{chen2022ribdetector,zheng2025rfcaudit,song2026protocolguard}.
+ParCleanse, iPanda, and AUTOSPEC use LLMs, retrieval, execution analysis, or
+implementation feedback to generate protocol message specifications,
+quasi-oracles, formal specifications, or conformance
+tests~\cite{zheng2025parcleanse,sun2025ipanda,liu2025autospec}. These systems
+also use protocol standards as guidance, but their outputs are usually
+rule-matching results, parser oracles, code snippets, or dynamic
+counterexamples. In contrast, \tool{} models each check target as a field-level
+conformance claim that connects the standard source, field semantics,
+applicability condition, and implementation evidence. When the code context,
+runtime path, or validation evidence is insufficient, the system preserves the
+\textsc{Insufficient} state and retrieves additional evidence in the next
+round, separating evidence-supported deviations from insufficiently supported
+hypotheses. This combination of field-level modeling and non-binary judgment
 allows \tool{} to characterize the correspondence between standard requirements
 and implementation behavior at a finer granularity, especially for subtle
 deviations in field values, state-dependent conditions, compound constraints,
@@ -40,59 +36,43 @@ evidence, but their oracles are usually hand-written, inferred from observed
 behavior, or tied to protocol-specific testing frameworks. TLS-Attacker and
 TLS-Anvil generate targeted TLS
 tests~\cite{somorovsky2016tlsattacker,maehren2022tlsanvil}; protocol state
-fuzzing and automata-based analyses expose deviations in TLS/DTLS state
-machines~\cite{de2015protocol,fiterau2020dtls,fiterau2023automata,beurdouche2015messy};
-and monitor-based testing encodes protocol requirements as external monitors and
-uses symbolic execution to find DTLS and QUIC
-deviations~\cite{asadian2024monitor}. QUIC conformance studies also show that
-independent implementations can drift, regress, or diverge as specifications
-evolve~\cite{piraux2018quicevolution}. Certificate-validation studies use
-adversarial, differential, symbolic, and RFC-guided inputs to test SSL/TLS
-implementations~\cite{brubaker2014frankencert,chen2015guided,chen2018rfc,chen2017hvlearn,chau2017symcerts}.
-General protocol fuzzers such as AFLNet and StateAFL improve exploration of
-stateful network
+fuzzing, automata-based analysis, and monitor-based testing expose state-machine
+deviations or conformance issues in TLS/DTLS, QUIC, and related protocol
+implementations~\cite{de2015protocol,fiterau2020dtls,fiterau2023automata,beurdouche2015messy,asadian2024monitor,piraux2018quicevolution}.
+Certificate-validation studies further use adversarial inputs, differential
+testing, symbolic execution, and RFC-guided inputs to test SSL/TLS
+implementations~\cite{brubaker2014frankencert,chen2015guided,chen2018rfc,chen2017hvlearn,chau2017symcerts},
+while general protocol fuzzers such as AFLNet and StateAFL improve exploration
+of stateful network
 protocols~\cite{pham2020aflnet,natella2022stateafl,natella2021profuzzbench,ba2022stateful}.
-These methods are effective at exploring protocol implementations and finding
+These methods are effective at triggering implementation behavior and finding
 defects, especially when test targets, input-generation strategies, or oracles
-are already available. \tool{} is complementary to them: traditional testing 
-and fuzzing emphasize behavior triggering and defect discovery, whereas \tool{}
-starts from natural-language standards, aligns field-level requirements with 
-implementation code, and determines whether the implementation deviates from the standard.
+are already clear. In contrast, \tool{} focuses on identifying field-level
+check targets from natural-language standards and linking them to
+implementation code and runtime behavior, providing traceable standard
+evidence for testing and human review.
 
 
 \noindent \textbf{Formal verification.}
-Formal methods have been widely used for protocol security analysis and
-implementation verification. For example, prior TLS~1.3 work uses ProVerif and
-CryptoVerif to model core protocol logic and verify security
-properties~\cite{blanchet2016proverif,blanchet2008cryptoverif,cremers2017tls13}.
-Such methods can provide strong guarantees, but they typically rely on
-precisely defined abstract models or reference specifications, rather than
-directly addressing large-scale conformance checking between natural-language
-standards and existing code implementations.
-
-Other work more directly checks conformance between protocol standards and
-implementations. Continuous formal verification of Amazon s2n uses Cryptol and
-SAW to prove equivalence between a TLS implementation and high-level
-specifications, and integrates verification into the development
-process~\cite{cryptol,saw,chudnov2018s2n}. Work on the OpenSSL TLS~1.3
-handshake state machine constructs Cryptol models from both the RFC and the
-OpenSSL implementation, and compares state-transition sequences to check
-equivalence between the standard and the
+Prior work has explored how formal methods can be used to check conformance
+between protocol specifications and implementations. Chudnov et al. use Cryptol
+and SAW to prove that key components of Amazon s2n-TLS conform to high-level
+specifications, and integrate the verification process into development
+processes~\cite{s2ntls,cryptol,saw,chudnov2018s2n}. E-Verify constructs
+Cryptol models of the handshake state machine from both the RFC and the OpenSSL
+implementation, and compares state-transition sequences to check equivalence
+between the standard and the
 implementation~\cite{guan2025openssltls13}. SYMNV uses symbolic execution to
-generate test inputs and checks whether network daemons violate rules extracted
-from protocol specifications~\cite{song2011symnv}. EverParse and follow-up
-work generate verified parsers and serializers from data-format
-specifications~\cite{ramananandro2019everparse,swamy2022everparse3d}. Recent
-work has also explored end-to-end verification from high-level protocol models
-to production code~\cite{pereira2024protocolstocode,arquint2022modular}.
-These efforts demonstrate the value of formal methods for protocol
-implementation verification, but they often require substantial manual effort
-to construct and maintain models, specification languages, or proof scripts.
-When standards or implementations evolve, the corresponding formal artifacts
-must also be updated. \tool{} does not aim to prove the correctness of an
-entire protocol or implementation. Instead, it identifies potential
-inconsistencies between natural-language standards and implementation code, and
-provides traceable evidence for subsequent confirmation.
+generate test inputs and checks whether network daemons violate specification
+rules~\cite{song2011symnv}; EverParse and follow-up work generate verified
+parsers and serializers from data-format
+specifications~\cite{ramananandro2019everparse,swamy2022everparse3d}, while
+recent work further explores end-to-end verification from high-level protocol
+models to production code~\cite{pereira2024protocolstocode,arquint2022modular}.
+Unlike formal verification methods that aim for full correctness proofs,
+\tool{} avoids the high cost of manually constructing formal models and can
+directly extract field-level requirements from natural-language standards and
+locate implementation deviations.
 
 % \noindent \textbf{Specification-to-code traceability and mining.}
 % Requirements traceability research uses information retrieval, LSI,

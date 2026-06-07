@@ -37,7 +37,7 @@ default configuration keeps the top 8 files after file ranking and the top 20
 variable candidates for each rule. The evaluation reported in the main text
 uses the benchmark-specific settings described in Section~6, namely the top-15
 file budget, top-8 variable budget, top-12 snippet budget, and a three-round
-evidence-completion budget. The validation agent receives at most two attempts
+evidence-completion budget. The validation-test agent receives at most two attempts
 per defect hypothesis before the sample is reported with unmet validation
 conditions. We tune these parameters once on held-out protocol sections and
 keep them fixed for all evaluated protocols and implementations.
@@ -117,7 +117,7 @@ Confirmed/fixed & Submitted report & Maintainer patch or explicit fix confirmati
 False positives & Submitted report & Maintainer rejection, expert adjudication, or counter-test & Adjudicated reports \\
 Pending & Submitted report & No sufficient maintainer or review signal yet & Submitted reports \\
 Adj.P & Submitted report & Confirmed/fixed and false-positive labels & Confirmed/fixed + false positives \\
-Ablation coverage & Confirmed-fixed full-system report & Whether variant reproduced that report & 126 confirmed-fixed reports \\
+Ablation coverage & Final submitted report & Whether variant reproduced that report & 240 final submitted reports \\
 CVE & Security-relevant confirmed report & Assigned CVE after disclosure & Confirmed reports \\
 \bottomrule
 \end{tabular}
@@ -198,13 +198,12 @@ CB-TLS-MBED & Mbed TLS mbedtls & TLS 1.3 & RFC 8446 / 312 & 17 & 11 & 1 & 5 & St
 CB-TLS-HITL & openHiTLS openHiTLS & TLS 1.3 & RFC 8446 / 312 & 19 & 12 & 1 & 6 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 CB-DTLS-BSSL & BoringSSL boringssl & DTLS 1.3 & RFC 9147 / 198 & 12 & 5 & 0 & 7 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 CB-QUIC-QUICHE & Cloudflare quiche & QUIC & RFC 9000 / 286 & 24 & 15 & 1 & 8 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
-CB-QUIC-NGTCP2 & ngtcp2 ngtcp2 & QUIC & RFC 9000 / 286 & 18 & 11 & 1 & 6 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 CB-COAP-LIBCOAP & libcoap libcoap & CoAP & RFC 7252 / 143 & 18 & 11 & 1 & 6 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 CB-MQTT-WMQ & wolfSSL wolfMQTT & MQTT 3.1.1 & OASIS 3.1.1 / 127 & 22 & 14 & 1 & 7 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 CB-MQTT-MOS3 & Eclipse Mosquitto & MQTT 3.1.1 & OASIS 3.1.1 / 127 & 16 & 10 & 0 & 6 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 CB-MQTT-MOS5 & Eclipse Mosquitto & MQTT 5.0 & OASIS 5.0 / 164 & 21 & 13 & 1 & 7 & Standard spans, normalized rules, code evidence, tests, adjudication notes \\
 \midrule
-Total & -- & -- & -- & 204 & 126 & 9 & 69 & Aggregate tables reproduced from the blinded report index \\
+Total & -- & -- & -- & 186 & 115 & 8 & 63 & Aggregate tables reproduced from the blinded report index \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -221,7 +220,7 @@ are stable across the index, logs, validation artifacts, and table-generation
 scripts. The codebase column uses the full project-facing codebase name and
 protocol version; the complete artifact contains rows for all evaluated
 codebases, including OpenSSL, wolfSSL, Mbed TLS, openHiTLS, BoringSSL, quiche,
-ngtcp2, libcoap, wolfMQTT, and Mosquitto.
+libcoap, wolfMQTT, and Mosquitto.
 
 \begin{table*}[p]
 \centering

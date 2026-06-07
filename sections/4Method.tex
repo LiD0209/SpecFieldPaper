@@ -1,1 +1,106 @@
-% Merged into sections/3Overview.tex.
+% \section{Related Work}
+% \label{sec:related}
+
+% \noindent \textbf{Specification-guided protocol analysis.}
+% Recent protocol-analysis systems increasingly use standard documents to guide
+% implementation checking. RIBDetector extracts RFC-derived rules to identify
+% implementation inconsistencies~\cite{chen2022ribdetector}; ParCleanse uses LLMs
+% to translate RFC documents into protocol message specifications that serve as
+% traceable quasi-oracles for parser validation~\cite{zheng2025parcleanse};
+% RFCAudit builds semantic indexes over protocol code and uses an LLM agent to
+% retrieve implementation context for RFC-related defect
+% detection~\cite{zheng2025rfcaudit}; and ProtocolGuard combines LLM-guided
+% program slicing with assertion-guided fuzzing to detect protocol
+% non-compliance~\cite{song2026protocolguard}. Other recent systems have similar
+% goals: iPanda uses retrieval, LLM agents, and execution feedback to generate
+% conformance tests~\cite{sun2025ipanda}, and AUTOSPEC synthesizes formal
+% protocol specifications from natural-language documents and implementation
+% feedback to support test generation~\cite{liu2025autospec}. These systems also
+% use protocol standards to guide implementation analysis, but their outputs are
+% usually rule-matching results, parser oracles, retrieved code snippets, or
+% dynamic counterexamples. In contrast, \tool{} models each check target as a
+% field-level conformance claim that connects the standard source, field
+% semantics, applicability condition, implementation evidence, and
+% evidence-sufficiency state, forming an evidence chain from specification fields
+% to implementation variables and runtime behavior. At the same time, \tool{} does
+% not force every candidate result into a binary ``consistent'' or
+% ``inconsistent'' verdict. When the code context, runtime path, or validation
+% evidence is insufficient, the system explicitly preserves the
+% \textsc{Insufficient} state instead of producing an overconfident defect claim.
+% This separates evidence-supported deviations from insufficiently supported
+% hypotheses, reduces false-positive risk, and provides a basis for later human
+% review and maintainer communication. This combination of field-level modeling
+% and non-binary judgment allows \tool{} to characterize the correspondence
+% between standard requirements and implementation behavior at a finer
+% granularity, especially for subtle deviations in field values, state-dependent
+% conditions, compound constraints, and error handling. Our evaluation shows that
+% \tool{} uncovers several implementation deviations that, to the best of our
+% knowledge, had not been reported by prior standard-to-code checking work.
+
+% % The experimental results show that \tool{} can discover multiple implementation
+% % deviations that were not reported by prior standard-to-code checking work.
+
+% \noindent \textbf{Protocol testing.}
+% Traditional conformance suites and protocol fuzzers provide strong executable
+% evidence, but their oracles are usually hand-written, inferred from observed
+% behavior, or tied to protocol-specific testing frameworks. TLS-Attacker and
+% TLS-Anvil generate targeted TLS
+% tests~\cite{somorovsky2016tlsattacker,maehren2022tlsanvil}; protocol state
+% fuzzing and automata-based analyses expose deviations in TLS/DTLS state
+% machines~\cite{de2015protocol,fiterau2020dtls,fiterau2023automata,beurdouche2015messy};
+% and monitor-based testing encodes protocol requirements as external monitors and
+% uses symbolic execution to find DTLS and QUIC
+% deviations~\cite{asadian2024monitor}. QUIC conformance studies also show that
+% independent implementations can drift, regress, or diverge as specifications
+% evolve~\cite{piraux2018quicevolution}. Certificate-validation studies use
+% adversarial, differential, symbolic, and RFC-guided inputs to test SSL/TLS
+% implementations~\cite{brubaker2014frankencert,chen2015guided,chen2018rfc,chen2017hvlearn,chau2017symcerts}.
+% General protocol fuzzers such as AFLNet and StateAFL improve exploration of
+% stateful network
+% protocols~\cite{pham2020aflnet,natella2022stateafl,natella2021profuzzbench,ba2022stateful}.
+% These methods are effective at exploring protocol implementations and finding
+% defects, especially when test targets, input-generation strategies, or oracles
+% are already available. \tool{} is complementary to them: traditional testing 
+% and fuzzing emphasize behavior triggering and defect discovery, whereas \tool{}
+% starts from natural-language standards, aligns field-level requirements with 
+% implementation code, and determines whether the implementation deviates from the standard.
+
+
+% \noindent \textbf{Formal verification.}
+% Prior work has explored how formal methods can be used to check conformance
+% between protocol specifications and implementations. Chudnov et al. use Cryptol
+% and SAW to prove that key components of Amazon s2n-TLS conform to high-level
+% specifications, and integrate the verification process into development
+% processes~\cite{s2ntls,cryptol,saw,chudnov2018s2n}. Work on the OpenSSL TLS~1.3
+% handshake state machine constructs Cryptol models from both the RFC and the
+% OpenSSL implementation, and compares state-transition sequences to check
+% equivalence between the standard and the
+% implementation~\cite{guan2025openssltls13}. SYMNV uses symbolic execution to
+% generate test inputs and checks whether network daemons violate rules extracted
+% from protocol specifications~\cite{song2011symnv}. EverParse and follow-up
+% work generate verified parsers and serializers from data-format
+% specifications~\cite{ramananandro2019everparse,swamy2022everparse3d}. Recent
+% work has also explored end-to-end verification from high-level protocol models
+% to production code~\cite{pereira2024protocolstocode,arquint2022modular}.
+% These efforts demonstrate the value of formal methods for protocol
+% implementation verification, but they often require substantial manual effort
+% to construct and maintain models, specification languages, or proof scripts.
+% When standards or implementations evolve, the corresponding formal artifacts
+% must also be updated. \tool{} does not aim to prove the correctness of an
+% entire protocol or implementation. Instead, it identifies potential
+% inconsistencies between natural-language standards and implementation code, and
+% provides traceable evidence for subsequent confirmation.
+
+% % \noindent \textbf{Specification-to-code traceability and mining.}
+% % Requirements traceability research uses information retrieval, LSI,
+% % candidate-link generation, and deep semantic representations to connect
+% % natural-language requirements with source-code artifacts~\cite{antoniol2002recovering,marcus2003recovering,hayes2006advancing,clelandhuang2014software,guo2017semantically}.
+% % Specification mining infers likely properties from program executions or
+% % recurring code patterns~\cite{ernst2001dynamically,engler2001bugs,engler2001checking}.
+% % FASTRIC makes implicit FSM-like structures in LLM interactions explicit and
+% % checks execution traces against those structures~\cite{jin2025fastric}. 
+% % These lines of work primarily focus on link recovery, property inference, or
+% % execution-trace checking. In contrast, \tool{} treats standard--code linking as
+% % an intermediate step toward conformance judgments that include evidence and
+% % uncertainty notes, reducing the risk that incorrect links directly become false
+% % positives and improving the auditability of the results.

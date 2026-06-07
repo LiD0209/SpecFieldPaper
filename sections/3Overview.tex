@@ -25,17 +25,17 @@ triage.
 \subsection{Problem Definition}
 
 \tool{} represents each standard-derived requirement as a rule
-$r=\langle f,C,A,M,E\rangle$. Here, $f$ is the constrained protocol field, $C$
+$r=\langle F,C,A,M,E\rangle$. Here, $F$ is the constrained protocol field, $C$
 is the condition under which the rule applies, $A$ is the required action or
 constraint, $M$ is the normative modality such as \emph{MUST} or
 \emph{SHOULD}, and $E$ records source evidence from the standard. For each
 rule, the checker returns
-$o=\langle y,E,U,T,R\rangle$, where
-$y\in\{\textsc{Consistent},\textsc{Inconsistent},\textsc{Insufficient}\}$ is
+$o=\langle Y,E,U,T,R\rangle$, where
+$Y\in\{\textsc{Consistent},\textsc{Inconsistent},\textsc{Insufficient}\}$ is
 the judgment, $E$ contains both document and code evidence, $U$ records missing
 or uncertain context, $T$ stores validation-test evidence when the validation
 stage runs, and $R$ is an optional inconsistency reason used only when
-$y=\textsc{Inconsistent}$.
+$Y=\textsc{Inconsistent}$.
 
 
 This representation separates standard-derived obligations from implementation 
@@ -83,10 +83,10 @@ from the scope of field-level checking. This conservative resolution strategy
 reduces erroneous field merges and prevents such errors from propagating to
 subsequent rule-to-code alignment and consistency reasoning.
 
-\subsection{Field-Centric Rule Extraction}
+\subsection{Field Rule Extraction}
 \label{sec:rules}
 
-After constructing the field space, \tool{} extracts field-centric rules from
+After constructing the field space, \tool{} extracts field-level rules from
 normative standard sections. For each section, the model receives the section
 text, the field-space entries relevant to that section, and a lexicon of RFC
 2119-style normative keywords. Within this constrained context, it identifies
@@ -102,7 +102,7 @@ normalizes this standard constraint into the following simplified field-level
 rule:
 \begin{lstlisting}[style=jsonsnippet]
 {
-  "f": "Cookie.cookie",
+  "F": "Cookie.cookie",
   "C": "Client receives a TLS 1.3 HRR Cookie.",
   "A": "Reject if Cookie is empty.",
   "M": "MUST",
@@ -229,12 +229,14 @@ Cookie check is present is further determined in the subsequent reasoning and
 validation stage.
 \begin{lstlisting}[style=jsonsnippet]
 if (!PACKET_as_length_prefixed_2(pkt, &cookie)
-        || !PACKET_memdup(&cookie, &s->ext.tls13_cookie,
-                          &s->ext.tls13_cookie_len)) {
-    SSLfatal(s, SSL_AD_DECODE_ERROR, SSL_R_LENGTH_MISMATCH);
+    || !PACKET_memdup(&cookie, &s->ext.tls13_cookie,
+        &s->ext.tls13_cookie_len)) {
+    SSLfatal(s, SSL_AD_DECODE_ERROR, 
+                    SSL_R_LENGTH_MISMATCH);
     return 0;
 }
 \end{lstlisting}
+
 % At alignment time, this snippet is treated only as code evidence: it shows the
 % field representation, parser helper calls, and associated decode-error path.
 % Whether this context satisfies the standard, or instead suggests a missing
@@ -262,11 +264,11 @@ the next round.
 \small
 \DontPrintSemicolon
 \KwIn{Rule $r$, implementation index $I$, maximum rounds $K$}
-\KwOut{Consistency tuple $\langle y,E,U,T,R\rangle$}
+\KwOut{Consistency tuple $\langle Y,E,U,T,R\rangle$}
 $C_0 \leftarrow$ AlignRuleToCode$(r,I)$\;
 \For{$i \leftarrow 0$ \KwTo $K$}{
   $o_i \leftarrow$ Reason$(r,C_i)$\;
-  \If{$o_i.y \neq \mathrm{Insufficient}$}{
+  \If{$o_i.Y \neq \mathrm{Insufficient}$}{
     \Return $o_i$\;
   }
   $q_i \leftarrow$ ContextRequest$(o_i.U)$\;
@@ -320,7 +322,7 @@ The final inconsistency record contains the field rule, code evidence, runtime
 observation, and inconsistency explanation:
 \begin{lstlisting}[style=jsonsnippet]
 {
-  "y": "Inconsistent",
+  "y": "INCONSISTENT",
   "E": {
     "document": {
       "section": "RFC8446 Sec.4.2.2",

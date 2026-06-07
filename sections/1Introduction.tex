@@ -38,12 +38,12 @@ that realizes them.
 % Effective checking therefore needs a bounded obligation, relevant code context,
 % and an explicit way to report insufficient evidence.
 
-This paper focuses on field-level protocol requirements. Many actionable
+This paper focuses on field-level requirements in protocol standards. Many actionable
 requirements specify that a field may appear only in a particular state, that
 its value must fall within an allowed range, that it must match another field,
 that it depends on negotiated parameters, or that it must trigger rejection
 under an invalid combination. We represent such requirements as \ruleform{}:
-under condition $C$, field $f$ must satisfy action or constraint $A$. This form
+field $F$ must satisfy action or constraint $A$ under condition $C$. This form
 is not a complete formal semantics, but it provides a clear boundary for
 checking standard text against implementation code.
 
@@ -58,12 +58,11 @@ evidence recorded explicitly. For suspicious inconsistent results, \tool{}
 further attempts to generate executable validation tests.
 
 We evaluate \tool{} on real-world implementations of TLS/DTLS, MQTT, QUIC, and
-CoAP. \tool{} produced 204 submitted conformance-deviation reports; maintainers
-confirmed or fixed 126, rejected 9 as false positives, and 69 remain pending.
+CoAP. \tool{} produced 240 submitted conformance-deviation reports; maintainers
+confirmed 85, rejected 4 as false positives, and 151 remain pending.
 Two confirmed reports were assigned previously unknown CVEs. Under GPT-5.4
-pricing, the average model cost is \$1.122 per submitted report.
-
-Our main contributions are:
+pricing, the average model cost is \$1.122 per submitted report. 
+Our main contributions are as follows:
 
 \begin{itemize}[leftmargin=*]
   \item We formulate protocol conformance checking as a field-centric alignment
@@ -73,12 +72,12 @@ Our main contributions are:
   deviations in implementations.
 
   \item We introduce an auditable reporting workflow that turns model-assisted
-  analysis into maintainer-oriented defect reports and reproducible validation
+  analysis into maintainer-oriented defect reports and reproduction
   artifacts, reducing reliance on raw LLM verdicts and supporting manual
   confirmation.
 
   \item We evaluate \tool{} on real-world implementations of TLS/DTLS, MQTT,
-  QUIC, and CoAP, producing 204 submitted reports, 126 maintainer-confirmed or
-  fixed reports, 9 rejected false positives, 69 pending reports, and two
+  QUIC, and CoAP, producing 240 submitted reports, 85 maintainer-confirmed
+  reports, 4 rejected false positives, 151 pending reports, and two
   previously unknown CVEs.
 \end{itemize}
